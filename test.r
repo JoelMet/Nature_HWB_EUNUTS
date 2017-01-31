@@ -7,11 +7,29 @@
 
 ## Load Panel Data from European Quality of Life Survey 2007 (EQL 2007)
 
-eql_2007_sub <- read.table("C:/Users/jmethorst/Documents/R analyses/EQL_2007_subset.txt",
+eql_2007_sub <- read.table("C:/Users/jmethorst/Documents/R analyses/Nature_HWB_EUNUTS/EQL_2007_subset.txt",
                            sep="\t", header=TRUE)
 
 names(eql_2007_sub)
 
+str(eql_2007_sub)
+
+# 35634 obs. of  57 variables
+
+summary(eql_2007_sub$q29)
+
+### First remove the unusable answers (values range from 1 - 10)
+# Value = 1	Label = 1 Very dissatisfied
+# Value = 10	Label = 10 Very satisfied
+# Value = 99.0	Label = DK
+
+q29_noanswer_id <- which(eql_2007_sub$q29 %in% 99)
+
+eql_2007_sub.1 <- eql_2007_sub[-q29_noanswer_id,]
+
+summary(eql_2007_sub.1$q29)
+
+str(eql_2007_sub.1) # 35472 obs. of  57 variables
 
 ####################################################################################
 
@@ -159,7 +177,7 @@ str(area_2007)
 names(Bird.Sp.Rich_2007)
 
 Nature_data_2007 <- cbind(Bird.Sp.Rich_2007, Megafauna_2007[,4:6],
-                          Tree_Sp.Rich_2007[,4], Land.Hetero_2007[,4:9],
+                          "Tree.Sp.Rich" = Tree_Sp.Rich_2007[,4], Land.Hetero_2007[,4:9],
                           Terrain_2007[,4:8], Climate_2007_sub[,3:16], area_2007)
 
 names(Nature_data_2007)
@@ -167,3 +185,378 @@ names(Nature_data_2007)
 boxplot(Nature_data_2007[,1:35])
 
 write.table(Nature_data_2007, "Nature_data_2007.txt", sep="\t")
+
+Nature_data_2007 <- read.table("Nature_data_2007.txt", header = TRUE, sep = "\t")
+
+#############################################################################
+
+### merge EQL Data with NAture Data into one dataframe
+?merge
+
+length(unique(eql_2007_sub.1$EQL_Region)) # 251
+
+length(unique(Nature_data_2007$EQL_Region)) # 250
+
+length(unique(Nature_data_2007$NUTS_ID)) # 251 -- because of bratislava
+
+## remove the NUTS_ID for Bratislava
+
+Nature_data_2007 <- Nature_data_2007[-which(Nature_data_2007$NUTS_ID == "SK01"), ]
+
+length(unique(Nature_data_2007$NUTS_ID)) # 250
+
+################################
+
+Dataset_total <- merge(eql_2007_sub.1, Nature_data_2007, by = "EQL_Region")
+
+str(Dataset_total) # 35472 obs. of  60 variables
+
+summary(Dataset_total)
+
+names(Dataset_total)
+
+## Column with Question about Life Satisfaction is:
+## Variable = q29	
+## Variable label = Q29 All things considered, how satisfied would you say you are with your life these days?
+
+
+library(lme4)
+library(nlme)
+library(arm)
+
+#### testing first model 
+
+# respose Variabel = Life Satisfaction (q29)
+
+summary(Dataset_total$q29)
+hist(Dataset_total$q29)
+
+# explanatory Variable = 
+# hh2a = Gender, factor
+# hh2b = Age , factor
+summary(Dataset_total$hh2b)
+# CVhh2b = age = numeric
+summary(Dataset_total$CVhh2b)
+
+hist(Dataset_total$CVhh2b)
+
+# hh2d = employment , factor
+summary(Dataset_total$hh2d)
+
+# q30 = maritial status , factor
+summary(Dataset_total$q30)
+
+Dataset_total$q30[Dataset_total$q30 == 5] <- NA
+# CVq31 = Children
+summary(Dataset_total$CVq31)
+
+hist(Dataset_total$CVq31)
+
+Dataset_total$CVq31[Dataset_total$CVq31 == 999] <- NA
+
+# ISCED = education level, factor
+summary(Dataset_total$ISCED)
+
+# q67 = income (monthly household net income), factor
+# CVq67 = household net income, numeric
+summary(Dataset_total$CVq67) # -1 = refusal
+Dataset_total$CVq67[Dataset_total$CVq67 == -1] <- NA
+
+hist(log(Dataset_total$CVq67))
+
+# CV6768o = Householdincome in Euro, numeric
+summary(Dataset_total$CV6768o)
+hist(Dataset_total$CV6768o)
+
+# q40_6 = health (1 = very dissatisfied, 10 = very satisfied), factor
+summary(Dataset_total$q40_6)
+Dataset_total$q40_6[Dataset_total$q40_6 == 99] <- NA
+
+# q43 = health (1= very good, 2 = good, 3 = fait, etc.), factor 
+
+summary(Dataset_total$q43)
+Dataset_total$q43[Dataset_total$q43 == 6] <- NA
+
+# q22 = Religion
+summary(Dataset_total$q22)
+
+Dataset_total$q22[Dataset_total$q22 == 9] <- NA
+
+# q52 = Rural or Countryside
+summary(Dataset_total$q52)
+
+Dataset_total$q52[Dataset_total$q52 == 5] <- NA
+
+# q40_7 = Rural or Countryside
+summary(Dataset_total$q40_7)
+
+Dataset_total$q40_7[Dataset_total$q40_7 == 99] <- NA
+
+# EmplstatEF = Employment Status, factor
+summary(Dataset_total$EmplstatEF)
+
+# EurostatGDPpercapitainPPS2005 = GDP per Capita
+summary(Dataset_total$EurostatGDPpercapitainPPS2005)
+
+hist(log(Dataset_total$EurostatGDPpercapitainPPS2005))
+
+# Rur_UrbEF = 1 = countryside/smalle town, 2 = city, urban area; factor
+summary(Dataset_total$Rur_UrbEF)
+
+# hhtypeEF = household type, factor, factor
+summary(Dataset_total$hhtypeEF)
+
+################################################################################
+
+?glm
+
+dataset_mod1 <- Dataset_total[, c("country", "EQL_Region", "hh2a", "CVhh2b", "CV6768o", "CVq31", "hh2d", "q29", "q30", 
+                                  "ISCED", "q67", "CVq67", "q40_6", "q43", "q22", "q52", "q40_7",
+                                  "EurostatGDPpercapitainPPS2005", "EmplstatEF", "Rur_UrbEF", "hhtypeEF")]
+
+str(dataset_mod1)
+
+dataset_mod1$country <- as.factor(dataset_mod1$country)
+dataset_mod1$EQL_Region <- as.factor(dataset_mod1$EQL_Region)
+dataset_mod1$hh2a <- as.factor(dataset_mod1$hh2a)
+dataset_mod1$hh2d <- as.factor(dataset_mod1$hh2d)
+dataset_mod1$q30 <- as.factor(dataset_mod1$q30)
+dataset_mod1$ISCED <- as.factor(dataset_mod1$ISCED)
+dataset_mod1$q67 <- as.factor(dataset_mod1$q67)
+dataset_mod1$q40_6 <- as.factor(dataset_mod1$q40_6)
+dataset_mod1$q43 <- as.factor(dataset_mod1$q43)
+dataset_mod1$q22 <- as.factor(dataset_mod1$q22)
+dataset_mod1$q52 <- as.factor(dataset_mod1$q52)
+dataset_mod1$q40_7 <- as.factor(dataset_mod1$q40_7)
+dataset_mod1$EmplstatEF <- as.factor(dataset_mod1$EmplstatEF)
+dataset_mod1$Rur_UrbEF <- as.factor(dataset_mod1$Rur_UrbEF)
+dataset_mod1$hhtypeEF <- as.factor(dataset_mod1$hhtypeEF)
+
+nature.data_mod1 <- Dataset_total[, 60:93]
+
+str(nature.data_mod1)
+
+nature.data_mod1$TRI.mean.cat <- as.factor(nature.data_mod1$TRI.mean.cat)
+nature.data_mod1$Wolf_dummy <- as.factor(nature.data_mod1$Wolf_dummy)
+nature.data_mod1$Bear_dummy <- as.factor(nature.data_mod1$Bear_dummy)
+
+hist(nature.data_mod1$Birdlife_SpR)
+hist(nature.data_mod1$EBBA1_SpR)
+
+dat.mod1 <- cbind(dataset_mod1, nature.data_mod1)
+
+str(dat.mod1)
+
+
+################################################################################
+
+####### explore data
+
+par(mar = c(5,4,2,2))
+
+plot(Birdlife_SpR ~ q29, data = dat.mod1)
+
+plot(EBBA1_SpR ~ q29, data = dat.mod1)
+
+plot(Corine2006_H ~ q29, data = dat.mod1)
+
+plot(Corine2006_simp ~ q29, data = dat.mod1)
+
+plot(Corine2006_nat.H ~ q29, data = dat.mod1)
+
+plot(Corine2006_nat.simp ~ q29, data = dat.mod1)
+
+plot(Megafauna_Spec.Rich ~ q29, data = dat.mod1)
+
+plot(Tree_Sp.Rich_2007...4. ~ q29, data = dat.mod1)
+
+plot(q29 ~ Bear_dummy, data = dat.mod1)
+
+plot(q29 ~ Wolf_dummy, data = dat.mod1)
+
+
+plot(q29 ~ TRI.mean.cat, data = dat.mod1) 
+plot(TRI.mean ~ q29, data = dat.mod1) 
+plot(Elevation_range ~ q29, data = dat.mod1) 
+plot(Elevation_mean ~ q29, data = dat.mod1)
+
+
+plot(log(CVq67) ~ q29, data = dat.mod1, xlab = "Life Satisfaction", ylab = "log Net Monthly Income")
+
+plot(log(CV6768o) ~ q29, data = dat.mod1, xlab = "Life Satisfaction", ylab = "log Household Income [EUR]")
+
+plot(log(EurostatGDPpercapitainPPS2005) ~ q29, data = dat.mod1, xlab = "Life Satisfaction", ylab = "log GDP per Capita")
+
+
+plot(q29 ~ hh2a, data = dat.mod1, xlab = "Sex", ylab = "Life Satisfaction", xaxt = "n")
+
+axis(1, 1:2, labels = c("Male", "Female"))
+
+
+plot(CVhh2b ~ q29, data = dat.mod1, xlab = "Life Satisfaction", ylab = "Age")
+
+par(mar = c(10,5,1,1))
+plot(q29 ~ ISCED, data = dat.mod1, xlab = NULL, ylab = "Life Satisfaction", xaxt = "n")
+
+axis(1, 1:7, labels = c("Early Childhood Education", "Primary Education", "Lower Secondary Education",
+                        "Upper Secondary Education", "Post-Secondary non-tertiary",
+                        "Short-cycle tertiary ", "Bachelor or Equivalent"), las = 2, cex.axis = 0.6)
+
+# Value = 1	Label = ISCED0 = Early Childhood Education
+# Value = 2	Label = ISCED1 = Primary Education
+# Value = 3	Label = ISCED2 = Lower Secondary Education
+# Value = 4	Label = ISCED3 = Upper Secondary Education
+# Value = 5	Label = ISCED4 = Post-Secondary non-tertiary 
+# Value = 6	Label = ISCED5 = Short-cycle tertiary 
+# Value = 7	Label = ISCED6 = Bachelor or Equivalent
+
+
+######## Generalized Linear Models
+
+mod_glm1 <- glm(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                  q40_6 + Birdlife_SpR:a.km.2007 + country, data = dat.mod1)
+
+summary(mod_glm1)
+
+par(mfrow = c(2,2))
+
+plot(mod_glm1)
+
+
+mod_glm2 <- glm(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                  q40_6 + EBBA1_SpR:a.km.2007 + country, data = dat.mod1)
+
+summary(mod_glm2)
+# EBBA1_SpR:a.km.2007  5.486e-09  2.906e-09   1.888 0.059093 .
+
+plot(mod_glm2)
+
+mod_glm3 <- glm(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                  q40_6 + EBBA1_AreaWeighted_SpR:a.km.2007 + country, data = dat.mod1)
+
+summary(mod_glm3)
+
+
+
+###############################################################################
+
+###### Mixed Effect Model
+
+?na.exclude
+
+mod_lme1 <- lme(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                  q40_6 + Birdlife_SpR*a.km.2007, 
+                random = ~1 + Birdlife_SpR | country, data = dat.mod1, na.action = na.exclude)
+
+summary(mod_lme1)
+# AIC      BIC    logLik
+# 65380.23 65680.69 -32651.12
+
+mod_lme1.1 <- lme(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                  q40_6 + Birdlife_SpR*a.km.2007, 
+                random = ~1 | country, data = dat.mod1, na.action = na.exclude)
+
+summary(mod_lme1.1)
+#  AIC      BIC    logLik
+# 65383.58 65668.63 -32654.79
+
+mod_lme1.2 <- lme(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                    q40_6 + Birdlife_SpR*a.km.2007, method = "ML",
+                  random = ~1 | country, data = dat.mod1, na.action = na.exclude)
+
+summary(mod_lme1.2)
+
+plot(mod_lme1.2)
+
+# AIC      BIC    logLik
+# 65180.27 65465.41 -32553.14
+
+mod_lme1.3 <- lme(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                    q40_6 + Birdlife_SpR*a.km.2007, method = "REML",
+                  random = ~1 | country, data = dat.mod1, na.action = na.exclude)
+
+summary(mod_lme1.3)
+
+# AIC      BIC    logLik
+# 65383.58 65668.63 -32654.79
+
+####
+
+mod_lme2 <- lme(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                  q40_6 + EBBA1_SpR*a.km.2007, method = "ML",
+                random = ~1 | country, data = dat.mod1, na.action = na.exclude)
+
+summary(mod_lme2)
+# AIC      BIC    logLik
+# 65169.74 65454.87 -32547.87
+
+plot(mod_lme2)
+
+mod_lme3 <- lme(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                  q40_6 + EBBA1_AreaWeighted_SpR*a.km.2007, 
+                random = ~1 | country, data = dat.mod1, na.action = na.exclude)
+
+summary(mod_lme3)
+
+
+##############################################################################
+
+################### Land heterogeneity
+
+names(dat.mod1)
+
+hist(log(dat.mod1$CV6768o))
+
+hist(nature.data_mod1$Corine2006_nat.H)
+
+####### linar model
+
+mod_landhetero.1 <- gls(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                          q43 + q52 + q40_7 + Corine2006_nat.H, data = dat.mod1, na.action = na.exclude,
+                        method = "ML")
+
+summary(mod_landhetero.1)
+#     AIC      BIC    logLik
+# 63035.46 63350.59 -31476.73
+
+plot(mod_landhetero.1)
+
+###### with random effect
+
+mod_landhetero.1.1 <- lme(log(q29) ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                          q43 + q52 + q40_7 + Corine2006_nat.H, data = dat.mod1, na.action = na.exclude,
+                        random = ~1 | country, method = "ML")
+
+summary(mod_landhetero.1.1)
+
+# AIC      BIC    logLik
+# 62419.38 62742.19 -31167.69
+
+plot(mod_landhetero.1.1$residuals ~ mod_landhetero.1.1$fitted)
+
+
+
+
+#########################################################################
+
+######### Ordinal Data
+
+######### ordered logistic regression or probit regression
+
+library(MASS)
+
+dat.mod1$q29 <- as.factor(dat.mod1$q29)
+
+mod_olr <- polr(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                q40_6 + log(Birdlife_SpR):a.km.2007 + country, data = dat.mod1)
+
+summary(mod_olr)
+
+library(ordinal)
+
+ordinal.mod.1 <- clm(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
+                       q43 + q52 + q40_7 + Corine2006_H, data = dat.mod1)
+
+summary(ordinal.mod.1)
+
+
