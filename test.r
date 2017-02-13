@@ -1,4 +1,13 @@
 
+library(maps)
+library(rgdal)
+library(gbm)
+library(raster)
+library(rgeos)
+library(maptools)
+library(ncdf4)
+library(ggplot2)
+
 ########## Pilot Analysis
 
 ######### Effects of NAture on Human Well-Being
@@ -12,24 +21,137 @@ eql_2007_sub <- read.table("C:/Users/jmethorst/Documents/R analyses/Nature_HWB_E
 
 names(eql_2007_sub)
 
-str(eql_2007_sub)
+str(eql_2007_sub) # 30562 obs. of  60 variables
 
-# 35634 obs. of  57 variables
+summary(eql_2007_sub)
 
-summary(eql_2007_sub$q29)
+############### remove NAs
+
+summary(eql_2007_sub$EQL_Region)
+
+unique(na.exclude(eql_2007_sub1$EQL_Region))
+
+eql_2007_sub1 <- eql_2007_sub[complete.cases(eql_2007_sub$EQL_Region),]
+
+str(eql_2007_sub1) # 30562 obs. of  60 variables
+
 
 ### First remove the unusable answers (values range from 1 - 10)
 # Value = 1	Label = 1 Very dissatisfied
 # Value = 10	Label = 10 Very satisfied
 # Value = 99.0	Label = DK
 
-q29_noanswer_id <- which(eql_2007_sub$q29 %in% 99)
+summary(eql_2007_sub1$q29)
 
-eql_2007_sub.1 <- eql_2007_sub[-q29_noanswer_id,]
+eql_2007_sub.1 <- eql_2007_sub1[-which(eql_2007_sub1$q29 %in% 99),]
 
 summary(eql_2007_sub.1$q29)
 
-str(eql_2007_sub.1) # 35472 obs. of  57 variables
+str(eql_2007_sub.1) # 30430 obs. of  60 variables
+
+## check how man row have EQL region "212"
+
+# str(eql_2007_sub.1[eql_2007_sub.1$EQL_Region == 212, ]) # 5124
+
+# summary(eql_2007_sub.1[eql_2007_sub.1$EQL_Region == 212, ])
+
+## I assume here that 212 must be Bratislava (NUTS SK01)
+
+
+###########################################################################
+
+### ad NUTS ID Column to EQL data
+
+matchNUTS_EQL <- read.csv(file = "C:/Users/jmethorst/Documents/EQL Data 2007/EQL_2007_match_NUTS.csv",
+                           header = TRUE, sep = ";")
+
+str(matchNUTS_EQL)
+
+length(unique(eql_2007_sub.1$EQL_Region)) # 250
+
+length(unique(matchNUTS_EQL$EQL_Region)) # 250 
+
+setdiff(eql_2007_sub.1$EQL_Region, matchNUTS_EQL$EQL_Region)
+# no difference
+
+# transform to factor 
+
+matchNUTS_EQL$EQL_Region <- as.factor(matchNUTS_EQL$EQL_Region)
+
+str(eql_2007_sub.1)
+
+eql_2007_sub.1$EQL_Region <- as.factor(eql_2007_sub.1$EQL_Region)
+
+### merge data sets
+
+eql_2007_sub.2 <- merge(eql_2007_sub.1, matchNUTS_EQL[, c(1, 2, 3)], by = "EQL_Region")
+
+# eql_2007_sub.2 <- dataframe(eql_2007_sub.1[, 1:59], matchNUTS_EQL[, c(1, 2, 3)], by.x = "EQL_Region")
+
+
+names(eql_2007_sub.2)
+
+length(unique(eql_2007_sub.2$EQL_Region)) # 250
+
+length(unique(eql_2007_sub.2$NUTS_ID)) # 250
+
+str(eql_2007_sub.2) # 30430 obs. of  62
+
+summary(eql_2007_sub.2)
+
+
+#############################################################################
+
+################### load other economic data
+
+### EUROSTAT Regional GDP per Capita in EUR (Mio.)
+
+GDPpCapita_EUR <- read.table("C:/Users/jmethorst/Documents/Economics Data/EUROSTAT_t_nama_reg/Regioanl_GDP_Mio.Eur/tgs00003_new.txt",
+                             header = TRUE, sep = "\t")
+
+
+names(GDPpCapita_EUR)
+
+regGDPpCapita_EUR.2007 <-  GDPpCapita_EUR[, c(3, 9)]
+
+# change names
+names(regGDPpCapita_EUR.2007) <- c("NUTS_ID", "regGDPpCapita_EUR.07")
+
+regGDPpCapita_EUR.2007$NUTS_ID[regGDPpCapita_EUR.2007$NUTS_ID == "<NA>"] <- NA
+
+## change to numeric
+regGDPpCapita_EUR.2007$regGDPpCapita_EUR.07 <- as.numeric(as.character(regGDPpCapita_EUR.2007$regGDPpCapita_EUR.07))
+
+summary(regGDPpCapita_EUR.2007)
+
+?aggregate
+
+## agregate the value to fit the NUTS REgions length
+regGDPpCapita_EUR.2007 <- aggregate(regGDPpCapita_EUR.07 ~ NUTS_ID, data = regGDPpCapita_EUR.2007, FUN = mean)
+
+str(regGDPpCapita_EUR.2007) # NUTS 251
+
+###################
+
+UnemployRate_reg <- read.table("C:/Users/jmethorst/Documents/Economics Data/EUROSTAT_Arbeitslosenquote.reg_t_employ/Unemployment_total.txt",
+                             header = TRUE, sep = "\t")
+
+str(UnemployRate_reg)
+
+names(UnemployRate_reg)
+
+UnemployRate_reg.2007 <- UnemployRate_reg[, c(5, 10)]
+
+names(UnemployRate_reg.2007) <- c("NUTS_ID", "UnemployRate_reg")
+
+UnemployRate_reg.2007$UnemployRate_reg <- as.numeric(as.character(UnemployRate_reg.2007$UnemployRate_reg))
+
+summary(UnemployRate_reg.2007)
+
+UnemployRate_reg.2007 <- aggregate(UnemployRate_reg ~ NUTS_ID, data = UnemployRate_reg.2007, FUN = mean)
+
+length(unique(UnemployRate_reg.2007$NUTS_ID))
+
 
 ####################################################################################
 
@@ -62,8 +184,23 @@ Bird.EBBC_2007 <- read.table("C:/Users/jmethorst/Documents/R analyses/BirdSpecie
 
 str(Bird.Birdlife_2007)
 
-str(Bird.EBBC_2007)
+summary(Bird.Birdlife_2007)
 
+summary(Bird.EBBC_2007) # there are some 0 values
+
+Bird.EBBC_2007[Bird.EBBC_2007$EBBA1_SpR == 0,]
+# CY00 Cyprus
+# ES70 ES Canarias
+# MT00 MALTA
+### --> these REgions are not covered by EBBA data
+
+## change zero value to NA
+
+Bird.EBBC_2007$EBBA1_SpR[Bird.EBBC_2007$EBBA1_SpR == 0] <- NA
+
+Bird.EBBC_2007$EBBA1_AreaWeighted_SpR[Bird.EBBC_2007$EBBA1_AreaWeighted_SpR == 0] <- NA
+
+########
 
 Bird.Sp.Rich_2007 <- cbind(Bird.Birdlife_2007[, c(1, 9, 10, 11)], Bird.EBBC_2007[, c(11, 12)] ) 
 
@@ -97,13 +234,52 @@ names(Megafauna_2007)
 Trees_2007 <- read.table("C:/Users/jmethorst/Documents/R analyses/Tree Species/Tree_SpRich_2007.txt",
                            sep="\t", header=TRUE)
 
-str(Trees_2007)
+names(Trees_2007)
 
 Tree_Sp.Rich_2007 <- Trees_2007[, c(1, 9, 10, 65)]
 
 names(Tree_Sp.Rich_2007)
 
 # "NUTS_ID"      "EQL_Region"   "EQL_Name"     "Tree_Sp.Rich"
+
+summary(Tree_Sp.Rich_2007)
+
+Tree_Sp.Rich_2007[Tree_Sp.Rich_2007$Tree_Sp.Rich == 0, ]
+# NUTS_ID  EQL_Region    EQL_Name
+# EL30         50      EL Attiki  
+# EL43         51      EL Kriti    
+# ES70         68      ES Canarias  
+
+# 102    ES61         52 ES Andalucia            0 ?????
+
+# change zero value so NA
+Tree_Sp.Rich_2007$Tree_Sp.Rich[Tree_Sp.Rich_2007$Tree_Sp.Rich == 0] <- NA
+
+
+########### Tree Diversity form Mauri et al 2017
+
+Mauri_Trees_2007 <- read.table("C:/Users/jmethorst/Documents/R analyses/Tree Species/Mauri etal 2017/Tree_SpR_NUTS2007.txt",
+                         sep="\t", header=TRUE)
+
+names(Mauri_Trees_2007)
+
+Mauri_Trees_2007.sub <- Mauri_Trees_2007[, c(1, 9, 10, 66)]
+
+summary(Mauri_Trees_2007.sub)
+
+Mauri_Trees_2007.sub[Mauri_Trees_2007.sub$Mauri.Tree_SpR == 0, ]
+
+# NUTS_ID EQL_Region                          EQL_Name 
+#     BE10         12 BE Brussels hoofdstedelijk gewest              
+#     BE25         13                BE West-Vlaanderen             
+#     BE31         16                 BE Brabant Wallon             
+#     EL43         51                          EL Kriti             
+#     MT00        172                             MALTA
+
+#### change Zero value to NA, because we do not have records in these NUTS regions
+
+# Mauri_Trees_2007.sub$Mauri.Tree_SpR[Mauri_Trees_2007.sub$Mauri.Tree_SpR == 0] <- NA
+
 
 ###########################################
 
@@ -112,9 +288,9 @@ names(Tree_Sp.Rich_2007)
 Elevation_2007 <- read.table("C:/Users/jmethorst/Documents/R analyses/Elevation/Elevation_NUTS2006.txt",
                          sep="\t", header=TRUE)
 
-str(Elevation_2007)
+names(Elevation_2007)
 
-Terrain_2007 <- Elevation_2007[, c(1, 9, 10, 11, 12, 13, 14, 15)] 
+Terrain_2007 <- Elevation_2007[, c(1, 9, 10, 11, 12, 13, 14, 15, 16)] 
 
 names(Terrain_2007)
 
@@ -145,9 +321,9 @@ names(Climate_2007_sub)
 
 ######### area size
 
-Nuts2_EQL_2007 <- "C:/Users/jmethorst/Documents/NUTS Regions Shapefiles/NUTS_2013_01M_SH/NUTS_2013_01M_SH/Final Shapefiles/"
+# Nuts2_EQL_2007 <- "C:/Users/jmethorst/Documents/NUTS Regions Shapefiles/NUTS_2013_01M_SH/NUTS_2013_01M_SH/Final Shapefiles/"
 
-Nuts.EQL2007_shp <- readShapePoly("C:/Users/jmethorst/Documents/NUTS Regions Shapefiles/NUTS_2013_01M_SH/NUTS_2013_01M_SH/Final Shapefiles/NUTS2_EQL2007.shp") 
+Nuts.EQL2007_shp <- readShapePoly("C:/Users/jmethorst/Documents/NUTS Regions Shapefiles/NUTS_2013_01M_SH/NUTS_2013_01M_SH/Final Shapefiles/NUTS2_EQL_2007.shp") 
 
 names(Nuts.EQL2007_shp)
 
@@ -170,15 +346,35 @@ area_2007 <- cbind(a.2007, a.km.2007)
 
 str(area_2007)
 
+
+#########################################
+
+######## NATURA 2000
+
+natura.2000 <- read.table("C:/Users/jmethorst/Documents/R analyses/Natura2000/Natura2000.ter_2007.txt",
+                          sep="\t", header=TRUE)
+
+names(natura.2000)
+
+natura.2000.sub <- natura.2000[, c(1, 9, 10, 12, 14)]
+
+names(natura.2000.sub)
+# [1] "NUTS_ID"             "EQL_Region"          "EQL_Name"           
+# [4] "Natura_AreaSize_km2" "Natura_Perc_Cover"
+
+summary(natura.2000.sub)
+
 ################################################################################
 
 ###################### Merge all the Data
 
 names(Bird.Sp.Rich_2007)
 
-Nature_data_2007 <- cbind(Bird.Sp.Rich_2007, Megafauna_2007[,4:6],
-                          "Tree.Sp.Rich" = Tree_Sp.Rich_2007[,4], Land.Hetero_2007[,4:9],
-                          Terrain_2007[,4:8], Climate_2007_sub[,3:16], area_2007)
+Nature_data_2007 <- cbind(Nuts.EQL2007_shp@data[, c(1, 9)], Bird.Sp.Rich_2007[, c(4,5,6)], Megafauna_2007[,4:6],
+                          "Tree.Sp.Rich" = Tree_Sp.Rich_2007[,4], "Mauri.Tree_SpR" = Mauri_Trees_2007.sub[,4], 
+                          # Land.Hetero_2007[,4:9], 
+                          area_2007, Terrain_2007[,4:8], # Climate_2007_sub[,3:16],  
+                          natura.2000.sub[,4:5])
 
 names(Nature_data_2007)
 
@@ -193,23 +389,31 @@ Nature_data_2007 <- read.table("Nature_data_2007.txt", header = TRUE, sep = "\t"
 ### merge EQL Data with NAture Data into one dataframe
 ?merge
 
-length(unique(eql_2007_sub.1$EQL_Region)) # 251
+length(unique(eql_2007_sub.2$EQL_Region)) # 250
 
 length(unique(Nature_data_2007$EQL_Region)) # 250
 
-length(unique(Nature_data_2007$NUTS_ID)) # 251 -- because of bratislava
+length(unique(Nature_data_2007$NUTS_ID)) # 250
+
+## find difference
+
+# setdiff(eql_2007_sub.1$EQL_Region, Nature_data_2007$EQL_Region)
+# 212
+# for some reason there is a 212 in the data set!
+# but in the Meta Data Table there is no 212 listes under "regionNUTS2EF"
+
+# eql_2007_sub.1[eql_2007_sub.1$EQL_Region == 212, ]
 
 ## remove the NUTS_ID for Bratislava
 
-Nature_data_2007 <- Nature_data_2007[-which(Nature_data_2007$NUTS_ID == "SK01"), ]
+# Nature_data_2007 <- Nature_data_2007[-which(Nature_data_2007$NUTS_ID == "SK01"), ]
 
-length(unique(Nature_data_2007$NUTS_ID)) # 250
 
 ################################
 
-Dataset_total <- merge(eql_2007_sub.1, Nature_data_2007, by = "EQL_Region")
+Dataset_total <- merge(eql_2007_sub.2, Nature_data_2007, by = "NUTS_ID")
 
-str(Dataset_total) # 35472 obs. of  60 variables
+str(Dataset_total) # 30430 obs. of  98 variables
 
 summary(Dataset_total)
 
@@ -295,6 +499,13 @@ Dataset_total$q40_7[Dataset_total$q40_7 == 99] <- NA
 # EmplstatEF = Employment Status, factor
 summary(Dataset_total$EmplstatEF)
 
+# "EurostatPopulationDensityAveragenumberofpeoplepersqua" 2005
+
+summary(Dataset_total$EurostatPopulationDensityAveragenumberofpeoplepersqua)
+
+# "EurostatPopulationDensityAveragenumberofpeoplepersqua_A" 2006
+
+
 # EurostatGDPpercapitainPPS2005 = GDP per Capita
 summary(Dataset_total$EurostatGDPpercapitainPPS2005)
 
@@ -306,12 +517,50 @@ summary(Dataset_total$Rur_UrbEF)
 # hhtypeEF = household type, factor, factor
 summary(Dataset_total$hhtypeEF)
 
+##############################################################################
+
+######## plot data
+
+names(Dataset_total)
+
+summary(Dataset_total$Mauri.Tree_SpR)
+
+par(mfrow = c(1,2))
+
+boxplot(Natura_Perc_Cover ~ q29, data = Dataset_total, main = "Natura2000 %-Cover + LS")
+
+boxplot(Natura_AreaSize_km2 ~ q29, data = Dataset_total, main = "Natura2000 km2 + LS")
+
+
+boxplot(Mauri.Tree_SpR ~ q29, data = Dataset_total, main = "Mauri et al. Tree Sp.R. + LS")
+
+boxplot(Tree.Sp.Rich ~ q29, data = Dataset_total, main = "EUFORGEN + FISE Tree Sp.R. + LS")
+
+
+
+boxplot(Birdlife_SpR ~ q29, data = Dataset_total, main = "Birdlife Bird Sp.R. + LS")
+
+boxplot(EBBA1_SpR ~ q29, data = Dataset_total, main = "EBBC Bird Sp.R. + LS")
+
+
+boxplot(Megafauna_Spec.Rich ~ q29, data = Dataset_total, main = "Megafauna Sp.R. + LS")
+
+
+boxplot(Elevation_range ~ q29, data = Dataset_total, main = "Elevation Range + LS")
+
+boxplot(TRI.mean ~ q29, data = Dataset_total, main = "TRI Mean + LS")
+
+
+
+
+###############################################################################
+################           data analysis
 ################################################################################
 
 ?glm
 
 dataset_mod1 <- Dataset_total[, c("country", "EQL_Region", "hh2a", "CVhh2b", "CV6768o", "CVq31", "hh2d", "q29", "q30", 
-                                  "ISCED", "q67", "CVq67", "q40_6", "q43", "q22", "q52", "q40_7",
+                                  "ISCED", "q67", "CVq67", "q40_6", "q43", "q22", "q52", "q40_7", "EurostatPopulationDensityAveragenumberofpeoplepersqua_A",
                                   "EurostatGDPpercapitainPPS2005", "EmplstatEF", "Rur_UrbEF", "hhtypeEF")]
 
 str(dataset_mod1)
@@ -354,9 +603,17 @@ str(dat.mod1)
 
 par(mar = c(5,4,2,2))
 
+##
+
+par(mfrow = c(1,2))
+
 plot(Birdlife_SpR ~ q29, data = dat.mod1)
 
 plot(EBBA1_SpR ~ q29, data = dat.mod1)
+
+####
+
+par(mfrow = c(2,2))
 
 plot(Corine2006_H ~ q29, data = dat.mod1)
 
@@ -366,19 +623,17 @@ plot(Corine2006_nat.H ~ q29, data = dat.mod1)
 
 plot(Corine2006_nat.simp ~ q29, data = dat.mod1)
 
-plot(Megafauna_Spec.Rich ~ q29, data = dat.mod1)
+####
 
-plot(Tree_Sp.Rich_2007...4. ~ q29, data = dat.mod1)
+plot(Tree_Sp.Rich_2007...4. ~ q29, data = dat.mod1, ylab = "TreeSpecies Richness")
+
+plot(Megafauna_Spec.Rich ~ q29, data = dat.mod1)
 
 plot(q29 ~ Bear_dummy, data = dat.mod1)
 
 plot(q29 ~ Wolf_dummy, data = dat.mod1)
 
-
-plot(q29 ~ TRI.mean.cat, data = dat.mod1) 
-plot(TRI.mean ~ q29, data = dat.mod1) 
-plot(Elevation_range ~ q29, data = dat.mod1) 
-plot(Elevation_mean ~ q29, data = dat.mod1)
+####
 
 
 plot(log(CVq67) ~ q29, data = dat.mod1, xlab = "Life Satisfaction", ylab = "log Net Monthly Income")
@@ -409,7 +664,6 @@ axis(1, 1:7, labels = c("Early Childhood Education", "Primary Education", "Lower
 # Value = 5	Label = ISCED4 = Post-Secondary non-tertiary 
 # Value = 6	Label = ISCED5 = Short-cycle tertiary 
 # Value = 7	Label = ISCED6 = Bachelor or Equivalent
-
 
 ######## Generalized Linear Models
 
@@ -554,9 +808,18 @@ summary(mod_olr)
 
 library(ordinal)
 
+?clm
+
 ordinal.mod.1 <- clm(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
-                       q43 + q52 + q40_7 + Corine2006_H, data = dat.mod1)
+                       q43 + q52 + q40_7 + Corine2006_H, data = dat.mod1, na.action = na.exclude)
 
 summary(ordinal.mod.1)
 
+confint(ordinal.mod.1)
 
+
+plot(ordinal.mod.1$fitted.values)
+
+plot(ordinal.mod.1$coefficients)
+
+plot(ordinal.mod.1$)
