@@ -250,9 +250,9 @@ dat.mod2 <- dat.mod1
 
 ?ordered
 
-dat.mod2$Life_Satisfaction <- ordered(dat.mod2$Life_Satisfaction, levels=c("1","2","3","4","5","6","7","8","9","10"))
+# dat.mod2$Life_Satisfaction <- ordered(dat.mod2$Life_Satisfaction, levels=c("1","2","3","4","5","6","7","8","9","10"))
 
-dat.mod2$Social_life <- ordered(dat.mod2$Social_life, levels=c("1","2","3","4","5","6","7","8","9","10"))
+# dat.mod2$Social_life <- ordered(dat.mod2$Social_life, levels=c("1","2","3","4","5","6","7","8","9","10"))
 
 str(dat.mod2)
 
@@ -312,6 +312,8 @@ dat.mod3 <- dat.mod1
 
 dat.mod3$Life_Satisfaction <- as.factor(dat.mod1$Life_Satisfaction)
 
+
+
 polr_mod1 <- polr(Life_Satisfaction ~ log(Householdincome_Euro) + EmplstatEF + Age + Maritial_status +
                     Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
                     PopulationDensityAveragenumberofpeoplepersqua_A + UnemployRate_reg + 
@@ -326,8 +328,35 @@ summary(polr_mod1)
 
 ######################################################################
 
+str(dat.mod2)
 
-ordinal.mod.1 <- clm(VGLM_formula2, data = dat.mod1, na.action = na.exclude)
+dat.mod2$Life_Satisfaction <- as.factor(dat.mod2$Life_Satisfaction)
+
+dat.mod2$Social_life <- as.factor(dat.mod2$Social_life)
+
+CLMM_formula1 <- Life_Satisfaction ~ log(Householdincome_Euro) + EmplstatEF + Age + Maritial_status +
+        Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
+        PopulationDensityAveragenumberofpeoplepersqua_A + UnemployRate_reg + 
+        # nature
+        Birdlife_SpR + EBBA1_AreaWeighted_SpR + Megafauna_Spec.Rich + Mauri.Tree_SpR +
+        nat.Simp_div + Natura_AreaSize_km2 + TRI.mean + a.km.2007 + tmean.yearmean
+
+
+?clmm
+
+unique(dat.mod2$country)
+# 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 31 32 33 34 35 36 37 38 39 40 41 42
+
+ordinal.mod.1 <- clmm(Life_Satisfaction ~ Householdincome_Euro + EmplstatEF + Age + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
+                        PopulationDensityAveragenumberofpeoplepersqua_A + 
+                        (1|country / EQL_Region), data = dat.mod2)
+
+# Warning message:
+# (2) Model is nearly unidentifiable: very large eigenvalue
+# - Rescale variables? 
+# In addition: Absolute and relative convergence criteria were met 
+
 
 summary(ordinal.mod.1)
 
