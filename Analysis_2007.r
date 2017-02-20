@@ -3,14 +3,18 @@ library(maps)
 library(rgdal)
 library(gbm)
 library(raster)
-library(rgeos)
-library(maptools)
-library(ncdf4)
+# library(rgeos)
+# library(maptools)
+# library(ncdf4)
 library(ggplot2)
 
 library(lme4)
 library(nlme)
 library(arm)
+
+library(ordinal)
+library(MASS)
+library(VGAM)
 
 ########## Pilot Analysis
 
@@ -142,7 +146,7 @@ socioeco_data1$Household_type <- as.factor(socioeco_data1$Household_type)
 
 # nature.data_mod1 <- Dataset_total[, 60:93]
 
-nature.data1 <- Dataset_total[, 63:97]
+nature.data1 <- Dataset_total[, 63:105]
 
 str(nature.data1)
 
@@ -212,6 +216,9 @@ summary(mod_lme1)
 # AIC      BIC    logLik
 # 66320.1 66583.55 -33126.05
 
+plot()
+
+?lme
 
 GLMM_formula2 <- Life_Satisfaction ~ log(Householdincome_Euro) + EmplstatEF + Age + Maritial_status +
                                       Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
@@ -220,7 +227,9 @@ GLMM_formula2 <- Life_Satisfaction ~ log(Householdincome_Euro) + EmplstatEF + Ag
                                       Birdlife_SpR + EBBA1_AreaWeighted_SpR + Megafauna_Spec.Rich + Mauri.Tree_SpR +
                                       nat.Simp_div + Natura_AreaSize_km2 + TRI.mean + a.km.2007 + tmean.yearmean
 
-mod_lme2 <- lme(GLMM_formula2, random = ~1 | country, data = dat.mod1, na.action = na.exclude)
+mod_lme2 <- lme(GLMM_formula2, random = ~1 | country / EQL_Region , data = dat.mod1, na.action = na.exclude)
+
+# NUTS Region als random effect
 
 summary(mod_lme2)
 # AIC       BIC     logLik
@@ -239,8 +248,6 @@ dat.mod2 <- dat.mod1
 
 ###########  multinomial regression
 
-library(VGAM)
-
 ?ordered
 
 dat.mod2$Life_Satisfaction <- ordered(dat.mod2$Life_Satisfaction, levels=c("1","2","3","4","5","6","7","8","9","10"))
@@ -258,7 +265,7 @@ VGLM_formula2 <- Life_Satisfaction ~ log(Householdincome_Euro) + EmplstatEF + Ag
                                       Birdlife_SpR + EBBA1_AreaWeighted_SpR + Megafauna_Spec.Rich + Mauri.Tree_SpR +
                                       nat.Simp_div + Natura_AreaSize_km2 + TRI.mean + a.km.2007 + tmean.yearmean
 
-?vglm
+?vglmm
 
 vglm_mod1 <- vglm(VGLM_formula2, family = propodds, data = dat.mod2)
 
@@ -299,8 +306,6 @@ multinom(prog2 ~ ses + write, data = ml)
 
 ######### ordered logistic regression or probit regression
 
-library(MASS)
-
 ?polr
 
 dat.mod3 <- dat.mod1
@@ -320,8 +325,6 @@ summary(polr_mod1)
 # Error in svd(X) : unendliche oder fehlende Werte in 'x'
 
 ######################################################################
-
-library(ordinal)
 
 
 ordinal.mod.1 <- clm(VGLM_formula2, data = dat.mod1, na.action = na.exclude)
