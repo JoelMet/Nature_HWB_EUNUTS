@@ -219,7 +219,7 @@ Bird.Sp.Rich_2007 <- cbind(Bird.Birdlife_2007[, c(9, 13)], Bird.EBBC_2007[, c(11
 
 names(Bird.Sp.Rich_2007)
 
-# "NUTS_ID"                "EQL_Region"             "EQL_Name"              
+#  "EQL_Region"                   
 # "Birdlife_SpR"           "EBBA1_SpR"              "EBBA1_AreaWeighted_SpR"
 
 
@@ -315,13 +315,15 @@ Climate_2007 <- read.table("C:/Users/jmethorst/Documents/R analyses/Climate/Clim
 
 names(Climate_2007)
 
-Climate_2007_sub <- Climate_2007[, c(9, 11, 12, 13, 14, 15, 16, 17, 18)]
+Climate_2007_sub <- Climate_2007[, c(9, 11, 12, 13, 14, 15, 16, 17, 18, 19 , 20, 21, 22, 23, 24)]
 
 names(Climate_2007_sub)
 
-# [1] "EQL_Region"      "tmean.yearmean"  "tmean.yearrange" "tmean.yearmax"  
-# [5] "tmean.yearmin"   "prec.yearmean"   "prec.yearrange"  "prec.yearmax"   
-# [9] "prec.yearmin"  
+#  [1] "EQL_Region"              "tmean.yearmean"          "tmean.yearrange"        
+# [4] "tmean.yearmax"           "tmean.yearmin"           "prec.yearmean"          
+# [7] "prec.yearrange"          "prec.yearmax"            "prec.yearmin"           
+# [10] "tg_0.25deg_HDD"          "tg_0.25deg_HDD.yearmean" "tg_0.25deg_CDD"         
+# [13] "tg_0.25deg_CDD.yearmean" "tg_0.25deg_GDD"          "tg_0.25deg_GDD.yearmean" 
 
 ###########################################
 
@@ -379,7 +381,7 @@ names(Bird.Sp.Rich_2007)
 Nature_data_2007 <- cbind("EQL_Region" = Nuts.EQL2007_shp@data[, 9], Bird.Sp.Rich_2007[, c(2, 3,4)], Megafauna_2007[,2:5],
                           "Tree.Sp.Rich" = Tree_Sp.Rich_2007[,2], "Mauri.Tree_SpR" = Mauri_Trees_2007.sub[,2], 
                           Land.Hetero_2007[,2:9], 
-                          area_2007, Terrain_2007[,2:7], Climate_2007_sub[,2:9],  
+                          area_2007, Terrain_2007[,2:7], Climate_2007_sub[,2:15],  
                           natura.2000.sub[,2:3])
 
 names(Nature_data_2007)
