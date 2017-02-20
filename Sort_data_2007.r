@@ -372,6 +372,21 @@ names(natura.2000.sub)
 
 summary(natura.2000.sub)
 
+#######################################
+
+## distanc to coast etc.
+
+coast <- read.table("C:/Users/jmethorst/Documents/R analyses/Coast/Coast_NUTS2007.txt",
+                          sep="\t", header=TRUE)
+
+names(coast)
+
+coast.sub <- coast[, c(1, 11, 12)]
+
+names(coast.sub)
+
+# "EQL_Region"          "Dist_centroid.coast" "Coast_length.km" 
+
 ################################################################################
 
 ###################### Merge all the Data
@@ -382,7 +397,7 @@ Nature_data_2007 <- cbind("EQL_Region" = Nuts.EQL2007_shp@data[, 9], Bird.Sp.Ric
                           "Tree.Sp.Rich" = Tree_Sp.Rich_2007[,2], "Mauri.Tree_SpR" = Mauri_Trees_2007.sub[,2], 
                           Land.Hetero_2007[,2:9], 
                           area_2007, Terrain_2007[,2:7], Climate_2007_sub[,2:15],  
-                          natura.2000.sub[,2:3])
+                          natura.2000.sub[,2:3], coast.sub[,2:3])
 
 names(Nature_data_2007)
 
