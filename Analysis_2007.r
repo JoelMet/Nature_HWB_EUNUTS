@@ -169,6 +169,9 @@ str(dat.mod1)
 
 ####### explore data
 
+summary(dat.mod1$Household_net_income.Num) # 13792 NAs
+
+summary(dat.mod1$Householdincome_Euro) # 9846 NAs
 
 
 ######################################
@@ -327,12 +330,18 @@ summary(polr_mod1)
 # Error in svd(X) : unendliche oder fehlende Werte in 'x'
 
 ######################################################################
+############# ordinal model with random effects
+#####################################################################
 
 str(dat.mod2)
+
+dat.mod2 <- dat.mod1
 
 dat.mod2$Life_Satisfaction <- as.factor(dat.mod2$Life_Satisfaction)
 
 dat.mod2$Social_life <- as.factor(dat.mod2$Social_life)
+
+dat.mod2$logHouseholdincome_Euro <- log(dat.mod2$Householdincome_Euro)
 
 CLMM_formula1 <- Life_Satisfaction ~ log(Householdincome_Euro) + EmplstatEF + Age + Maritial_status +
         Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
@@ -347,26 +356,57 @@ CLMM_formula1 <- Life_Satisfaction ~ log(Householdincome_Euro) + EmplstatEF + Ag
 unique(dat.mod2$country)
 # 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 31 32 33 34 35 36 37 38 39 40 41 42
 
-ordinal.mod.1 <- clmm(Life_Satisfaction ~ Householdincome_Euro + EmplstatEF + Age + Maritial_status +
+unique(dat.mod2$PopulationDensityAveragenumberofpeoplepersqua_A)
+# n = 27
+
+summary(dat.mod2$logHouseholdincome_Euro)
+
+##  run model
+?clmm.control
+
+ordinal.mod.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
                         Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
-                        PopulationDensityAveragenumberofpeoplepersqua_A + 
-                        (1|country / EQL_Region), data = dat.mod2)
-
-# Warning message:
-# (2) Model is nearly unidentifiable: very large eigenvalue
-# - Rescale variables? 
-# In addition: Absolute and relative convergence criteria were met 
-
+                        (1|country / EQL_Region), data = dat.mod2, na.action = na.exclude)
 
 summary(ordinal.mod.1)
 
+# confidence intervals
 confint(ordinal.mod.1)
 
+# extract random effects form model
+ranef.clmm(ordinal.mod.1)
 
 plot(ordinal.mod.1$fitted.values)
 
-plot(ordinal.mod.1$coefficients)
+ordinal.mod.1$optRes
 
+# coefficients
+mod.1_co <- coef(ordinal.mod.1)
+
+# variance-covariance matrix
+mod.1_vc <- vcov(ordinal.mod.1)
+
+###################
+
+library(effects)
+
+?effects
+
+plot(Effect("logHouseholdincome_Euro", ordinal.mod.1))
+
+
+
+###############################################################################
+
+################################################################################
+
+library(MCMCglmm)
+
+?MCMCglmm
+
+MCMC.mod.1 <- MCMCglmm(Life_Satisfaction ~ Householdincome_Euro + EmplstatEF + Age + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside,
+                        random = ~ country + EQL_Region, data = dat.mod2, family = "ordinal")
 
 ###############################################################################
 
