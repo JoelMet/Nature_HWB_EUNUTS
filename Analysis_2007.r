@@ -174,35 +174,6 @@ summary(dat.mod1$Household_net_income.Num) # 13792 NAs
 summary(dat.mod1$Householdincome_Euro) # 9846 NAs
 
 
-######################################
-
-######## Generalized Linear Models
-
-mod_glm1 <- glm(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
-                  q40_6 + Birdlife_SpR:a.km.2007 + country, data = dat.mod1)
-
-summary(mod_glm1)
-
-par(mfrow = c(2,2))
-
-plot(mod_glm1)
-
-
-mod_glm2 <- glm(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
-                  q40_6 + EBBA1_SpR:a.km.2007 + country, data = dat.mod1)
-
-summary(mod_glm2)
-# EBBA1_SpR:a.km.2007  5.486e-09  2.906e-09   1.888 0.059093 .
-
-plot(mod_glm2)
-
-mod_glm3 <- glm(q29 ~ log(CVq67) + hh2a + CVhh2b + CVq31 + hh2d + q30 + ISCED + 
-                  q40_6 + EBBA1_AreaWeighted_SpR:a.km.2007 + country, data = dat.mod1)
-
-summary(mod_glm3)
-
-
-
 ###############################################################################
 
 names(dat.mod1)
@@ -291,22 +262,6 @@ plotvglm(vglm_mod1)
 
 # predictvglm
 
-
-
-######################################################################
-
-# multiple regression analysis
-
-library(car)
-
-avPlots(lm1)
-
-#other options
-multinom(prog2 ~ ses + write, data = ml)
-
-
-
-
 ######### ordered logistic regression or probit regression
 
 ?polr
@@ -394,6 +349,161 @@ library(effects)
 
 plot(Effect("logHouseholdincome_Euro", ordinal.mod.1))
 
+###############################################################################
+
+names(dat.mod2)
+
+hist(log(dat.mod2$Birdlife_SpR))
+
+hist(dat.mod2$Birdlife_SpR)
+
+hist(log(dat.mod2$a.km.2007))
+
+ordinal.mod.2 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                        log(Birdlife_SpR):log(a.km.2007) + log(a.km.2007) +
+                        (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+summary(ordinal.mod.2)
+
+####
+
+ordinal.mod.2.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                          log(Birdlife_SpR) + log(Birdlife_SpR):log(a.km.2007) + log(a.km.2007) +
+                        (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+#Warning message:
+# (3) Model is nearly unidentifiable: large eigenvalue ratio
+# - Rescale variables? 
+# In addition: Absolute and relative convergence criteria were met 
+
+summary(ordinal.mod.2.1)
+
+###
+
+ordinal.mod.2.2 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+                          Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                          log(Birdlife_SpR) + log(a.km.2007) +
+                          (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+summary(ordinal.mod.2.2)
+
+####
+
+anova(ordinal.mod.2, ordinal.mod.2.1, ordinal.mod.2.2)
+
+##### 
+
+nrow(dat.mod2) # 30430
+
+# length(getME(ordinal.mod.2, "theta"))
+
+# length(fixef(ordinal.mod.2))
+
+### fix scales
+
+numcols <- grep("^c\\.", names(dat.mod2))
+
+#dfs <- df
+#dfs[,numcols] <- scale(dfs[,numcols])
+#m1_sc <- update(m1,data=dfs)
+
+### fit other optimizers
+
+##############################
+
+ordinal.mod.3 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                        log(EBBA1_AreaWeighted_SpR):log(a.km.2007) + log(a.km.2007) +
+                        (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+summary(ordinal.mod.3)
+
+## 
+
+ordinal.mod.3.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                        log(EBBA1_AreaWeighted_SpR) + log(EBBA1_AreaWeighted_SpR):log(a.km.2007) + log(a.km.2007) +
+                        (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+summary(ordinal.mod.3.1)
+
+### anova compare models
+
+anova(ordinal.mod.3, ordinal.mod.3.1)
+
+##############################################################################
+
+names(dat.mod2)
+
+hist(dat.mod2$nat.H_div)
+
+hist(dat.mod2$nat.Simp_div)
+
+# hist(log(dat.mod2$nat.Simp_div))
+
+## land hetero 
+
+ordinal.mod.4 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+                          Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                          nat.Simp_div + nat.H_div + log(a.km.2007) +
+                          (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+summary(ordinal.mod.4)
+
+###
+
+ordinal.mod.4.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                        nat.Simp_div + log(a.km.2007) +
+                        (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+summary(ordinal.mod.4.1)
+
+##
+
+ordinal.mod.4.2 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                        nat.H_div + log(a.km.2007) +
+                        (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+summary(ordinal.mod.4.2)
+
+##
+
+anova(ordinal.mod.4, ordinal.mod.4.1, ordinal.mod.4.2)
+
+
+##############################################################################
+
+### Tree Species
+
+names(dat.mod2)
+
+hist(dat.mod2$Mauri.Tree_SpR)
+
+hist(log(dat.mod2$Mauri.Tree_SpR))
+
+# hist(log(dat.mod2$nat.Simp_div))
+
+## land hetero 
+
+ordinal.mod.5 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                        Mauri.Tree_SpR + log(a.km.2007) +
+                        (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+summary(ordinal.mod.5)
+
+####
+
+ordinal.mod.5.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                        log(Mauri.Tree_SpR) + log(a.km.2007) +
+                        (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+summary(ordinal.mod.5.1)
 
 
 ###############################################################################
@@ -407,6 +517,24 @@ library(MCMCglmm)
 MCMC.mod.1 <- MCMCglmm(Life_Satisfaction ~ Householdincome_Euro + EmplstatEF + Age + Maritial_status +
                         Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside,
                         random = ~ country + EQL_Region, data = dat.mod2, family = "ordinal")
+
+#############
+
+library("gmnl")
+library("mlogit")
+
+?mlogit.data
+
+data("Electricity", package = "mlogit")
+
+names(Electricity)
+
+Electr <- mlogit.data(Electricity, id.var = "id", choice = "choice",
+                      varying = 3:26, shape = "wide", sep = "")
+
+str(Electr )
+
+test.df <- mlogit.data(dat.mod2, shape = "wide")
 
 ###############################################################################
 
