@@ -166,6 +166,42 @@ names(eql_2007_sub.2)
 
 str(eql_2007_sub.2) # 30430 obs. of  62 variables
 
+
+##########################
+
+Popdensity_reg <- read.table("C:/Users/jmethorst/Documents/Economics Data/tgs00024.tsv/Eurostat.Pop_densityNUTS2.txt",
+                               header = TRUE, sep = "\t")
+
+str(Popdensity_reg)
+
+names(Popdensity_reg)
+
+Popdensity_reg.2007 <- Popdensity_reg[, c(3, 8)]
+
+names(Popdensity_reg.2007) <- c("NUTS_ID", "Popdensity_reg")
+
+Popdensity_reg.2007$Popdensity_reg <- as.numeric(as.character(Popdensity_reg.2007$Popdensity_reg))
+
+str(Popdensity_reg.2007)
+
+#####
+
+Popdensity_reg.2007 <- aggregate(Popdensity_reg ~ NUTS_ID, data = Popdensity_reg.2007, FUN = mean)
+
+length(unique(Popdensity_reg.2007$NUTS_ID))
+
+str(UnemployRate_reg.2007)
+
+### merge with data
+
+
+eql_2007_sub.2 <- merge(eql_2007_sub.2, Popdensity_reg.2007, by = "NUTS_ID", all.x = TRUE)
+
+names(eql_2007_sub.2)
+
+str(eql_2007_sub.2) # 30430 obs. of  62 variables
+
+
 ####################################################################################
 
 ## Load the Nature Indicators summarized for NUTS Regions

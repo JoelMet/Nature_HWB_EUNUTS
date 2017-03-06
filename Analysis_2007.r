@@ -16,6 +16,8 @@ library(ordinal)
 library(MASS)
 library(VGAM)
 
+library(effects)
+
 ########## Pilot Analysis
 
 ######### Effects of Nature on Human Well-Being
@@ -105,30 +107,33 @@ boxplot(TRI.mean ~ q29, data = Dataset_total, main = "TRI Mean + LS")
 
 names(Dataset_total)
 
-socioeco_data1 <- Dataset_total[, c("country", "EQL_Region", "hh2a", "CVhh2b", "CV6768o", "CVq31", "hh2d", "q29", "q30", 
+socioeco_data1 <- Dataset_total[, c("WGT_TARGET", "WGT_TOTAL", "country", "country_abbr", "EQL_Region", "hh2a", "CVhh2b", "CV6768o", "CVq31", "hh2d", "q29", "q30", 
                                   "ISCED", "q67", "CVq67", "q40_6", "q43", "q22", "q52", "q40_7", "EurostatPopulationDensityAveragenumberofpeoplepersqua_A",
-                                  "EurostatGDPpercapitainPPS2005", "EmplstatEF", "Rur_UrbEF", "hhtypeEF",
+                                  "EurostatGDPpercapitainPPS2005", "EmplstatEF", "Rur_UrbEF", "hhtypeEF", "CISCED",
                                   "UnemployRate_reg")]
 
 ### change names
 
-names(socioeco_data1) <- c("country", "EQL_Region", "Gender", "Age", "Householdincome_Euro", "Children", "Employment_status", "Life_Satisfaction", 
+names(socioeco_data1) <- c("WGT_TARGET", "WGT_TOTAL", "country", "country_abbr", "EQL_Region", "Gender", "Age", "Householdincome_Euro", "Children", "Employment_status", "Life_Satisfaction", 
                            "Maritial_status", "Education_level_ISCED", "Household_net_income.F", "Household_net_income.Num", "Health_1_10", "Health_1_6",
                            "Religion", "Rural_or_Countryside", "Social_life", "PopulationDensityAveragenumberofpeoplepersqua_A",
-                            "GDPpercapitainPPS2005", "EmplstatEF", "Rur_UrbEF", "Household_type",
+                            "GDPpercapitainPPS2005", "EmplstatEF", "Rur_UrbEF", "Household_type", "Collapsed_ISCED",
                             "UnemployRate_reg")
 
 str(socioeco_data1)
 
+
 # life Satisfaction and Social Life are considered numeric!!!
 
 socioeco_data1$country <- as.factor(socioeco_data1$country)
+socioeco_data1$country_abbr <- as.factor(socioeco_data1$country_abbr)
 socioeco_data1$EQL_Region <- as.factor(socioeco_data1$EQL_Region)
 socioeco_data1$Gender <- as.factor(socioeco_data1$Gender)
 socioeco_data1$Employment_status <- as.factor(socioeco_data1$Employment_status)
 
 socioeco_data1$Maritial_status <- as.factor(socioeco_data1$Maritial_status)
 socioeco_data1$Education_level_ISCED <- as.factor(socioeco_data1$Education_level_ISCED)
+socioeco_data1$Collapsed_ISCED <- as.factor(socioeco_data1$Collapsed_ISCED)
 
 socioeco_data1$Household_net_income.F <- as.factor(socioeco_data1$Household_net_income.F)
 socioeco_data1$Health_1_10 <- as.factor(socioeco_data1$Health_1_10)
@@ -150,12 +155,61 @@ nature.data1 <- Dataset_total[, 63:105]
 
 str(nature.data1)
 
+names(nature.data1)
+
 nature.data1$TRI.mean.cat <- as.factor(nature.data1$TRI.mean.cat)
 nature.data1$Wolf_dummy <- as.factor(nature.data1$Wolf_dummy)
 nature.data1$Bear_dummy <- as.factor(nature.data1$Bear_dummy)
 
 hist(nature.data1$Birdlife_SpR)
 hist(nature.data1$EBBA1_SpR)
+
+##### check for colinearity
+
+?pairs
+
+
+panel.cor <- function(x, y, digits = 2, cex.cor, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  # correlation coefficient
+  r <- cor(x, y)
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste("r= ", txt, sep = "")
+  text(0.5, 0.6, txt)
+  
+  # p-value calculation
+  p <- cor.test(x, y)$p.value
+  txt2 <- format(c(p, 0.123456789), digits = digits)[1]
+  txt2 <- paste("p= ", txt2, sep = "")
+  if(p<0.01) txt2 <- paste("p= ", "<0.01", sep = "")
+  text(0.5, 0.4, txt2)
+}
+
+
+### first 10 columns
+
+pairs(nature.data1[,1:9], upper.panel = panel.cor)
+
+## -> very correlated with each other
+
+## species richness with landscape hetero.
+
+pairs(nature.data1[,c(1,2,4,7,8,9,10,12,13,14)], upper.panel = panel.cor)
+
+cor(nature.data1[,c(1,2,4,7,8,9,10,12,13,14)])
+
+library(GGally)
+
+ggpairs(nature.data1[,c(1,2,4,7,8,9,10,12,13,14)])
+
+## -> landscape hetero. and species richness seem to have low correlation
+
+################
+
+ggpairs(nature.data1[,c(1,2,4,7,8,9,13,14,19,22,24,26,30,41,42,43)])
+
 
 ##########################################################################
 
@@ -323,7 +377,7 @@ ordinal.mod.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF +
                         Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
                         (1|country / EQL_Region), data = dat.mod2, na.action = na.exclude)
 
-summary(ordinal.mod.1)
+summary(ordinal.mod.1) # 65275.24
 
 # confidence intervals
 confint(ordinal.mod.1)
@@ -348,6 +402,39 @@ library(effects)
 ?effects
 
 plot(Effect("logHouseholdincome_Euro", ordinal.mod.1))
+
+
+####################
+
+## Age quadratic
+ordinal.mod.1.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                        Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
+                        (1|country / EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+
+summary(ordinal.mod.1.1 ) # 65275.24
+
+####################
+
+## without social life as fixed factor
+
+ordinal.mod.1.2 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                          Health_1_6 + Religion + Education_level_ISCED  + Rural_or_Countryside +
+                          (1|country / EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+
+summary(ordinal.mod.1.2 ) # 69701.74
+
+## -> AIC is much higher without Social Life!!
+
+## with weights: WGT_Target = Weight variable to weight the result from target
+
+ordinal.mod.1.3 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                          Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
+                          (1|country / EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
+
+
+summary(ordinal.mod.1.3) # 65275.24
 
 ###############################################################################
 
@@ -393,23 +480,129 @@ summary(ordinal.mod.2.2)
 
 anova(ordinal.mod.2, ordinal.mod.2.1, ordinal.mod.2.2)
 
-##### 
+######################
 
-nrow(dat.mod2) # 30430
+## calculate with quadratic term for Age 
 
-# length(getME(ordinal.mod.2, "theta"))
+ordinal.mod.2.3 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                          Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                          log(Birdlife_SpR) + log(a.km.2007) +
+                          (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
 
-# length(fixef(ordinal.mod.2))
 
-### fix scales
+summary(ordinal.mod.2.3)
 
-numcols <- grep("^c\\.", names(dat.mod2))
+## compare model
 
-#dfs <- df
-#dfs[,numcols] <- scale(dfs[,numcols])
-#m1_sc <- update(m1,data=dfs)
+anova(ordinal.mod.2.2, ordinal.mod.2.3)
 
-### fit other optimizers
+## about the same!!
+
+######################
+
+ordinal.mod.2.4 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                          Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                          log(Birdlife_SpR) + log(a.km.2007) +
+                          (1|EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+
+summary(ordinal.mod.2.4) # AIC 69820.49
+
+
+plot(residuals(ordinal.mod.2.4, type = "normalized") ~ fitted(ordinal.mod.2.4))
+
+
+########
+
+## with weights: WGT_Target
+
+ordinal.mod.2.5 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                          Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                          log(Birdlife_SpR) + log(a.km.2007) +
+                          (1 | country/EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
+
+
+summary(ordinal.mod.2.5) # 66671.52
+
+
+###
+
+## weights : WGT_TOTAL = Weight variable for total sample (31 countries)
+
+dat.mod2$WGT_TOTAL
+
+ordinal.mod.2.6 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                          Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                          log(Birdlife_SpR) + log(a.km.2007) +
+                          (1 | country/EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TOTAL)
+
+
+summary(ordinal.mod.2.6) # 64295.04
+
+###
+
+## random slope with Rural or Countryside
+
+ordinal.mod.2.7 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                          Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside + 
+                          log(Birdlife_SpR) + log(a.km.2007) +
+                          (1 + Rural_or_Countryside| country/EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TOTAL)
+
+
+summary(ordinal.mod.2.7) # 63979.25
+
+plot(Effect("Birdlife_SpR", ordinal.mod.2.7))
+
+#########
+
+ordinal.mod.2.8 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                          Health_1_6 + Religion + Collapsed_ISCED + Rural_or_Countryside + 
+                          log(Birdlife_SpR) + log(a.km.2007) +
+                          (1 | country/EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TOTAL)
+
+
+summary(ordinal.mod.2.8) # 64320.04
+
+ordinal.mod.2.9 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                          Health_1_6 + Religion + Collapsed_ISCED + Rural_or_Countryside + 
+                          log(Birdlife_SpR) + log(a.km.2007) +
+                          (1 + Collapsed_ISCED| country/EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TOTAL)
+
+
+summary(ordinal.mod.2.9) # 64221.14
+
+##########
+
+hist(sqrt(dat.mod2$Birdlife_SpR))
+
+hist(log(dat.mod2$Birdlife_SpR))
+
+hist(dat.mod2$Birdlife_SpR^2)
+
+plot(Birdlife_SpR^2 ~ log(a.km.2007), data = dat.mod2)
+
+ordinal.mod.2.10 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                          Health_1_6 + Religion + Collapsed_ISCED + Rural_or_Countryside + 
+                          Birdlife_SpR^2 + log(a.km.2007) +
+                          (1 | country/EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TOTAL)
+
+
+summary(ordinal.mod.2.10) # 64322.72
+
+
+?effects
+
+plot(Effect("Birdlife_SpR", ordinal.mod.2.10))
+
+#####
+
+ordinal.mod.2.11 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                           Health_1_6 + Religion + Collapsed_ISCED + Rural_or_Countryside + 
+                           log(Birdlife_SpR) + log(a.km.2007) + country_abbr +
+                           (1 | EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TOTAL)
+
+
+summary(ordinal.mod.2.11) # 64292.44
 
 ##############################
 
@@ -432,6 +625,7 @@ summary(ordinal.mod.3.1)
 ### anova compare models
 
 anova(ordinal.mod.3, ordinal.mod.3.1)
+
 
 ##############################################################################
 
@@ -504,6 +698,10 @@ ordinal.mod.5.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF
                         (1|country/EQL_Region), data = dat.mod2, na.action = na.exclude)
 
 summary(ordinal.mod.5.1)
+
+
+
+
 
 
 ###############################################################################
