@@ -129,7 +129,15 @@ summary(regGDPpCapita_EUR.2007)
 ## agregate the value to fit the NUTS REgions length
 regGDPpCapita_EUR.2007 <- aggregate(regGDPpCapita_EUR.07 ~ NUTS_ID, data = regGDPpCapita_EUR.2007, FUN = mean)
 
-str(regGDPpCapita_EUR.2007) # NUTS 251
+str(regGDPpCapita_EUR.2007) # NUTS 250
+
+## merge with data
+
+eql_2007_sub.2 <- merge(eql_2007_sub.2, regGDPpCapita_EUR.2007, by = "NUTS_ID", all.x = TRUE)
+
+names(eql_2007_sub.2)
+
+str(eql_2007_sub.2) # 30430 obs. of  62 variables
 
 ###################
 
@@ -201,6 +209,43 @@ names(eql_2007_sub.2)
 
 str(eql_2007_sub.2) # 30430 obs. of  62 variables
 
+##############################################################################
+
+### create column with EUropean Region (Kopman & Rehdanz 2013): 
+
+# Northern Europe
+# - Denmark, Estonia, Finland, Ireland, Lithuania, LAtvia, Nordway, Sweden
+#   United Kingdom
+
+# Central Europe:
+# - Austria, Czech Republic, Germany, Hungary, Poland, Slvak Republic
+
+# Southwestern:
+# - Berlgium, Spain, France, Italy, Luxembourg, Malta, Netherlands, Portugal
+
+# Southeastern Europe:
+# - Bulgaria, Cyprus, Greece, Macedonia, Romania, Slovenia, Turkey
+
+str(eql_2007_sub.2)
+
+unique(eql_2007_sub.2$country_abbr)
+
+# create new column
+eql_2007_sub.2$Country_group1 <- NA
+
+# Nothern Europe: NEur
+eql_2007_sub.2[which(eql_2007_sub.2$country_abbr %in% c("DK", "SE", "UK", "EE", "LV", "LT", "FI", "IE")), "Country_group1"] <- "NEur"
+
+# Central Europe: CEur
+eql_2007_sub.2[which(eql_2007_sub.2$country_abbr %in% c("DE", "PL", "CZ", "AT", "HU", "SK")), "Country_group1"] <- "CEur"
+
+# Southwester Europe: SwestEur
+eql_2007_sub.2[which(eql_2007_sub.2$country_abbr %in% c("NL", "BE", "LU", "ES", "FR", "IT", "MT", "PT")), "Country_group1"] <- "SwestEur"
+
+# Southeastern Europe: SeastEur
+eql_2007_sub.2[which(eql_2007_sub.2$country_abbr %in% c("RO", "SI", "BG", "EL", "CY")), "Country_group1"] <- "SeastEur"
+
+str(eql_2007_sub.2$Country_group1)
 
 ####################################################################################
 
@@ -423,9 +468,24 @@ names(coast.sub)
 
 # "EQL_Region"          "Dist_centroid.coast" "Coast_length.km" 
 
+##############################################################################
+
+
+IUCN <- read.table("C:/Users/jmethorst/Documents/R analyses/CDDA/CDDA_NUTS_2007.txt",
+                    sep="\t", header=TRUE)
+
+names(IUCN)
+
+IUCN.sub <- IUCN[, c(1, 12, 13, 30, 31, 32, 33, 34, 35, 36, 37)]
+
+names(IUCN.sub)
+
+
+
+###############################################################################
+######################         Merge all the Data
 ################################################################################
 
-###################### Merge all the Data
 
 names(Bird.Sp.Rich_2007)
 
@@ -433,7 +493,7 @@ Nature_data_2007 <- cbind("EQL_Region" = Nuts.EQL2007_shp@data[, 9], Bird.Sp.Ric
                           "Tree.Sp.Rich" = Tree_Sp.Rich_2007[,2], "Mauri.Tree_SpR" = Mauri_Trees_2007.sub[,2], 
                           Land.Hetero_2007[,2:9], 
                           area_2007, Terrain_2007[,2:7], Climate_2007_sub[,2:15],  
-                          natura.2000.sub[,2:3], coast.sub[,2:3])
+                          natura.2000.sub[,2:3], coast.sub[,2:3], IUCN.sub[,2:11])
 
 names(Nature_data_2007)
 
@@ -451,8 +511,6 @@ Nature_data_2007 <- read.table("Nature_data_2007.txt", header = TRUE, sep = "\t"
 length(unique(eql_2007_sub.2$EQL_Region)) # 250
 
 length(unique(Nature_data_2007$EQL_Region)) # 250
-
-length(unique(Nature_data_2007$NUTS_ID)) # 250
 
 ## find difference
 
@@ -472,7 +530,7 @@ length(unique(Nature_data_2007$NUTS_ID)) # 250
 
 Dataset_total <- merge(eql_2007_sub.2, Nature_data_2007, by.x = "EQL_Region")
 
-str(Dataset_total) # 30430 obs. of  98 variables
+str(Dataset_total) # 30430 obs. of  125 variables
 
 summary(Dataset_total)
 

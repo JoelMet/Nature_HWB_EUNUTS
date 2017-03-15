@@ -110,7 +110,7 @@ names(Dataset_total)
 socioeco_data1 <- Dataset_total[, c("WGT_TARGET", "WGT_TOTAL", "country", "country_abbr", "EQL_Region", "hh2a", "CVhh2b", "CV6768o", "CVq31", "hh2d", "q29", "q30", 
                                   "ISCED", "q67", "CVq67", "q40_6", "q43", "q22", "q52", "q40_7", "EurostatPopulationDensityAveragenumberofpeoplepersqua_A",
                                   "EurostatGDPpercapitainPPS2005", "EmplstatEF", "Rur_UrbEF", "hhtypeEF", "CISCED",
-                                  "UnemployRate_reg")]
+                                  "UnemployRate_reg", "Country_group1", "regGDPpCapita_EUR.07")]
 
 ### change names
 
@@ -118,7 +118,7 @@ names(socioeco_data1) <- c("WGT_TARGET", "WGT_TOTAL", "country", "country_abbr",
                            "Maritial_status", "Education_level_ISCED", "Household_net_income.F", "Household_net_income.Num", "Health_1_10", "Health_1_6",
                            "Religion", "Rural_or_Countryside", "Social_life", "PopulationDensityAveragenumberofpeoplepersqua_A",
                             "GDPpercapitainPPS2005", "EmplstatEF", "Rur_UrbEF", "Household_type", "Collapsed_ISCED",
-                            "UnemployRate_reg")
+                            "UnemployRate_reg", "Country_group1", "regGDPpCapita_EUR.07")
 
 str(socioeco_data1)
 
@@ -146,12 +146,13 @@ socioeco_data1$EmplstatEF <- as.factor(socioeco_data1$EmplstatEF)
 socioeco_data1$Rur_UrbEF <- as.factor(socioeco_data1$Rur_UrbEF)
 socioeco_data1$Household_type <- as.factor(socioeco_data1$Household_type)
 
+socioeco_data1$Country_group1 <- as.factor(socioeco_data1$Country_group1)
 
 ###########################################################################
 
 # nature.data_mod1 <- Dataset_total[, 60:93]
 
-nature.data1 <- Dataset_total[, 63:105]
+nature.data1 <- Dataset_total[, 63:125]
 
 str(nature.data1)
 
@@ -436,6 +437,36 @@ ordinal.mod.1.3 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF
 
 summary(ordinal.mod.1.3) # 65275.24
 
+##############################################################################
+
+hist(dat.mod2$Coast_length.km)
+
+summary(dat.mod2$Coast_length.km)
+
+summary(log(dat.mod2$Dist_centroid.coast))
+
+summary(dat.mod2$Natura_Perc_Cover)
+
+summary(log(dat.mod2$prec.yearrange))
+
+summary(dat.mod2$Megafauna_Spec.Rich)
+
+summary(dat.mod2$nat.Simp_div)
+
+hist(dat.mod2$TRI.mean)
+
+summary(log(dat.mod2$Elevation_range))
+
+# ordinal.mod.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+#                           Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside +
+#                            log(Birdlife_SpR) + Megafauna_Spec.Rich + Mauri.Tree_SpR + nat.Simp_div + nat.H_div + TRI.mean + log(Elevation_range) + tmean.yearmean +
+#                            log(prec.yearrange) + Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km:log(a.km.2007) + log(Dist_centroid.coast):log(a.km.2007) +
+#                           log(a.km.2007) + country_abbr +
+#                           (1 | EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
+
+
+summary(ordinal.mod.full) #
+
 ###############################################################################
 
 names(dat.mod2)
@@ -603,6 +634,39 @@ ordinal.mod.2.11 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatE
 
 
 summary(ordinal.mod.2.11) # 64292.44
+
+
+########
+
+ordinal.mod.2.12 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                           Health_1_6 + Religion + Collapsed_ISCED + Rural_or_Countryside + 
+                           log(Birdlife_SpR) + log(a.km.2007) + Country_group1 + 
+                           (1 | country_abbr/EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TOTAL)
+
+
+summary(ordinal.mod.2.12) # 64316.95
+
+########
+
+ordinal.mod.2.13 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                           Health_1_6 + Religion + Collapsed_ISCED + Rural_or_Countryside + 
+                           log(Birdlife_SpR) + log(a.km.2007) + 
+                           (1 | Country_group1/EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TOTAL)
+
+
+summary(ordinal.mod.2.13) # 64377.73
+
+
+######
+
+
+ordinal.mod.2.14 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                           Health_1_6 + Religion + Collapsed_ISCED + Rural_or_Countryside + 
+                           log(Birdlife_SpR) + log(a.km.2007) + Country_group1 +
+                           (1 | EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TOTAL)
+
+
+summary(ordinal.mod.2.14) # 64370.34
 
 ##############################
 
