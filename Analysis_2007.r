@@ -17,6 +17,8 @@ library(MASS)
 library(VGAM)
 
 library(effects)
+library(GGally)
+library(scales)
 
 ########## Pilot Analysis
 
@@ -201,8 +203,6 @@ pairs(nature.data1[,c(1,2,4,7,8,9,10,12,13,14)], upper.panel = panel.cor)
 
 cor(nature.data1[,c(1,2,4,7,8,9,10,12,13,14)])
 
-library(GGally)
-
 ggpairs(nature.data1[,c(1,2,4,7,8,9,10,12,13,14)])
 
 ## -> landscape hetero. and species richness seem to have low correlation
@@ -212,6 +212,9 @@ ggpairs(nature.data1[,c(1,2,4,7,8,9,10,12,13,14)])
 ggpairs(nature.data1[,c(1,2,4,7,8,9,13,14,19,22,24,26,30,41,42,43)])
 
 
+
+##########################################################################
+############               Start analysis
 ##########################################################################
 
 ## merge the data subsets
@@ -230,10 +233,10 @@ summary(dat.mod1$Householdincome_Euro) # 9846 NAs
 
 
 ###############################################################################
+######                   Mixed Effect Model
+###############################################################################
 
 names(dat.mod1)
-
-###### Mixed Effect Model
 
 GLMM_formula1 <- Life_Satisfaction ~ log(Householdincome_Euro) + EmplstatEF + Age + Maritial_status +
                                       Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
@@ -267,9 +270,9 @@ summary(mod_lme2)
 plot(mod_lme2)
 
 
-#########################################################################
-
-######### Ordinal Data
+##############################################################################
+#########                       Ordinal Data
+##############################################################################
 
 dat.mod2 <- dat.mod1
 
@@ -339,9 +342,11 @@ summary(polr_mod1)
 ## ERROR
 # Error in svd(X) : unendliche oder fehlende Werte in 'x'
 
-######################################################################
-############# ordinal model with random effects
-#####################################################################
+
+
+################################################################################
+#############            ordinal model with random effects
+###############################################################################
 
 str(dat.mod2)
 
@@ -353,6 +358,9 @@ dat.mod2$Social_life <- as.factor(dat.mod2$Social_life)
 
 dat.mod2$logHouseholdincome_Euro <- log(dat.mod2$Householdincome_Euro)
 
+
+###################
+
 CLMM_formula1 <- Life_Satisfaction ~ log(Householdincome_Euro) + EmplstatEF + Age + Maritial_status +
         Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
         PopulationDensityAveragenumberofpeoplepersqua_A + UnemployRate_reg + 
@@ -360,8 +368,6 @@ CLMM_formula1 <- Life_Satisfaction ~ log(Householdincome_Euro) + EmplstatEF + Ag
         Birdlife_SpR + EBBA1_AreaWeighted_SpR + Megafauna_Spec.Rich + Mauri.Tree_SpR +
         nat.Simp_div + Natura_AreaSize_km2 + TRI.mean + a.km.2007 + tmean.yearmean
 
-
-?clmm
 
 unique(dat.mod2$country)
 # 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 31 32 33 34 35 36 37 38 39 40 41 42
@@ -398,8 +404,6 @@ mod.1_vc <- vcov(ordinal.mod.1)
 
 ###################
 
-library(effects)
-
 ?effects
 
 plot(Effect("logHouseholdincome_Euro", ordinal.mod.1))
@@ -428,6 +432,7 @@ summary(ordinal.mod.1.2 ) # 69701.74
 
 ## -> AIC is much higher without Social Life!!
 
+
 ## with weights: WGT_Target = Weight variable to weight the result from target
 
 ordinal.mod.1.3 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
@@ -437,7 +442,10 @@ ordinal.mod.1.3 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF
 
 summary(ordinal.mod.1.3) # 65275.24
 
+
 ##############################################################################
+
+############ Full Model with Nature data 
 
 hist(dat.mod2$Coast_length.km)
 
@@ -451,21 +459,78 @@ summary(log(dat.mod2$prec.yearrange))
 
 summary(dat.mod2$Megafauna_Spec.Rich)
 
-summary(dat.mod2$nat.Simp_div)
+hist(dat.mod2$nat.Simp_div)
 
 hist(dat.mod2$TRI.mean)
 
 summary(log(dat.mod2$Elevation_range))
 
+
 # ordinal.mod.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
 #                           Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside +
 #                            log(Birdlife_SpR) + Megafauna_Spec.Rich + Mauri.Tree_SpR + nat.Simp_div + nat.H_div + TRI.mean + log(Elevation_range) + tmean.yearmean +
 #                            log(prec.yearrange) + Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km:log(a.km.2007) + log(Dist_centroid.coast):log(a.km.2007) +
-#                           log(a.km.2007) + country_abbr +
-#                           (1 | EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
+#                            log(a.km.2007) + country_abbr +
+#                            (1 | EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
 
 
 summary(ordinal.mod.full) #
+
+##########################
+
+## rescale data
+
+dat.rescale <- dat.mod2
+
+names(dat.rescale)
+
+?scale
+
+# 60 = Elevation Range
+# 63 = TRI Mean
+# 70 = PREC Year Range
+# 81 = Dist to Coast
+# 82 = Coastline length
+
+summary(dat.rescale[, 60])
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 6     275     664    1082    1947    4399
+
+# 0 - 100
+# dat.rescale$Elevation_range <- scale(dat.rescale[, 60 ], center = FALSE,  scale = max(dat.rescale[, 60 ], na.rm = TRUE)/100)
+
+# summary(dat.rescale[, 60])
+# Min.   :  0.1364  
+# 1st Qu.:  6.2514  
+# Median : 15.0943  
+# Mean   : 24.5981  
+# 3rd Qu.: 44.2601  
+# Max.   :100.0000
+
+### for more than one column 
+
+dat.rescale[, c(60, 63, 70 , 81, 82) ] <- lapply(dat.rescale[, c(60, 63, 70 , 81, 82) ], function(x) scale(x, center = FALSE, scale = max(x, na.rm = TRUE)/100))
+
+summary(dat.rescale[, c(60, 63, 70 , 81, 82) ])
+
+names(dat.rescale)
+
+######### try model again
+
+hist(dat.rescale$prec.yearrange)
+
+hist(dat.rescale$tmean.yearmean)
+
+summary(log(dat.rescale$Megafauna_Spec.Rich))
+
+ordinal.mod.rescale.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +                           
+                                 Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside +
+                                 log(Birdlife_SpR) + Megafauna_Spec.Rich + log(Mauri.Tree_SpR) + nat.Simp_div + nat.H_div + TRI.mean + Elevation_range + tmean.yearmean +
+                                 prec.yearrange + Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km + Dist_centroid.coast +
+                                 log(a.km.2007) + country_abbr +
+                                 (1 | EQL_Region), data = dat.rescale, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
+
+
 
 ###############################################################################
 
