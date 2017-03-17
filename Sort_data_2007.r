@@ -33,7 +33,7 @@ unique(na.exclude(eql_2007_sub1$EQL_Region))
 
 eql_2007_sub1 <- eql_2007_sub[complete.cases(eql_2007_sub$EQL_Region),]
 
-str(eql_2007_sub1) # 30562 obs. of  60 variables
+str(eql_2007_sub1) # 30562 obs. of  98 variables
 
 
 ### First remove the unusable answers (values range from 1 - 10)
@@ -47,7 +47,7 @@ eql_2007_sub.1 <- eql_2007_sub1[-which(eql_2007_sub1$q29 %in% 99),]
 
 summary(eql_2007_sub.1$q29)
 
-str(eql_2007_sub.1) # 30430 obs. of  60 variables
+str(eql_2007_sub.1) # 30430 obs. of  98 variables
 
 ## check how man row have EQL region "212"
 
@@ -207,7 +207,7 @@ eql_2007_sub.2 <- merge(eql_2007_sub.2, Popdensity_reg.2007, by = "NUTS_ID", all
 
 names(eql_2007_sub.2)
 
-str(eql_2007_sub.2) # 30430 obs. of  62 variables
+str(eql_2007_sub.2) # 30430 obs. of  102 variables
 
 ##############################################################################
 
