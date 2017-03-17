@@ -422,6 +422,25 @@ plot(Effect("logHouseholdincome_Euro", ordinal.mod.1))
 
 ####################
 
+## link = probit
+
+# ordinal.probit.mod.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
+#                              Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
+#                              (1|country / EQL_Region), data = dat.mod2, na.action = na.exclude, link = "probit")
+
+# summary(ordinal.probit.mod.1) # 
+
+# link   threshold nobs  logLik    AIC      niter        max.grad cond.H 
+# probit flexible  18183 -32902.44 65900.88 10093(30279) 1.08e+03 1.4e+06
+
+# Random effects:
+#   Groups             Name        Variance Std.Dev.
+# EQL_Region:country (Intercept) 0.02877  0.1696  
+# country            (Intercept) 0.07653  0.2766  
+# Number of groups:  EQL_Region:country 250,  country 27
+
+####################
+
 ## Age quadratic
 ordinal.mod.1.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
                         Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
@@ -479,10 +498,10 @@ summary(log(dat.mod2$Elevation_range))
 
 ordinal.mod.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
                            Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside +
-                            log(Birdlife_SpR) + Megafauna_Spec.Rich + Mauri.Tree_SpR + nat.Simp_div + nat.H_div + TRI.mean + log(Elevation_range) + tmean.yearmean +
-                            log(prec.yearrange) + Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km + log(Dist_centroid.coast) +
-                            log(a.km.2007) + 
-                            (1 | country_abbr / EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
+                            Birdlife_SpR + Megafauna_Spec.Rich + Mauri.Tree_SpR + nat.Simp_div + nat.H_div + TRI.mean + Elevation_range + tmean.yearmean +
+                            prec.yearrange + Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km + Dist_centroid.coast +
+                            a.km.2007 + 
+                            (1 | country_abbr/EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
 
 
 summary(ordinal.mod.full) 
@@ -503,13 +522,13 @@ names(dat.rescale)
 
 summary(dat.rescale)
 
-# 60 = Elevation Range
-# 63 = TRI Mean
-# 70 = PREC Year Range
-# 81 = Dist to Coast
-# 82 = Coastline length
+# 81 = Elevation Range
+# 84 = TRI Mean
+# 90 = PREC Year Range
+# 102 = Dist to Coast
+# 103 = Coastline length
 
-summary(dat.rescale[, 60])
+summary(dat.rescale[, 81])
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 # 6     275     664    1082    1947    4399
 
@@ -526,9 +545,9 @@ summary(dat.rescale[, 60])
 
 ### for more than one column 
 
-dat.rescale[, c(60, 63, 70, 79, 81, 82) ] <- lapply(dat.rescale[, c(60, 63, 70, 79, 81, 82) ], function(x) scale(x, center = FALSE, scale = max(x, na.rm = TRUE)/100))
+dat.rescale[, c(81, 84, 91, 102, 103) ] <- lapply(dat.rescale[, c(81, 84, 91, 102, 103) ], function(x) scale(x, center = FALSE, scale = max(x, na.rm = TRUE)/100))
 
-summary(dat.rescale[, c(60, 63, 70, 79, 81, 82) ])
+summary(dat.rescale[, c(81, 84, 91, 102, 103) ])
 
 names(dat.rescale)
 
@@ -547,7 +566,7 @@ ordinal.mod.rescale.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + E
                                  log(Birdlife_SpR) + Megafauna_Spec.Rich + Mauri.Tree_SpR + nat.Simp_div + nat.H_div + 
                                  TRI.mean + Elevation_range + tmean.yearmean + prec.yearrange + 
                                  Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km + Dist_centroid.coast +
-                                 a.km.2007 +
+                                 log(a.km.2007) +
                                  (1 | country_abbr / EQL_Region), data = dat.rescale, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
 
 summary(ordinal.mod.rescale.full)
@@ -557,15 +576,43 @@ summary(ordinal.mod.rescale.full)
 # - Rescale variables? 
 # In addition: Absolute and relative convergence criteria were met 
 
-# link  threshold nobs     logLik    AIC      niter        max.grad cond.H 
-# logit flexible  16538.15 -30888.77 61883.54 10999(34349) 1.29e+03 6.3e+09
+#  link  threshold nobs     logLik    AIC      niter        max.grad cond.H 
+# logit flexible  16538.15 -30873.33 61852.65 14885(44771) 6.28e+01 6.2e+07
 
 # Random effects:
-#  Groups                  Name        Variance Std.Dev.
-# EQL_Region:country_abbr (Intercept) 0.1169   0.3419  
-# country_abbr            (Intercept) 0.4603   0.6785  
+#   Groups                  Name        Variance Std.Dev.
+# EQL_Region:country_abbr (Intercept) 0.1258   0.3547  
+# country_abbr            (Intercept) 0.1678   0.4096  
 # Number of groups:  EQL_Region:country_abbr 243,  country_abbr 25 
 
+
+##########################################################################
+
+### normalize the data
+
+# normalised (mean subtracted then divided by standard deviation)
+
+dat.norm <- dat.mod2
+
+names(dat.norm)
+
+dat.norm[, c(61, 64, 67, 69, 73, 74, 79, 81, 
+             84, 86, 91, 101, 102, 103, 105) ] <- lapply(dat.norm[, c(61, 64, 67, 69, 73, 74, 79, 81, 
+                                                                      84, 86, 91, 101, 102, 103, 105) ], 
+                                                         function(x) (x - mean(x, na.rm = TRUE))/ sd(x, na.rm = TRUE))
+
+summary(dat.norm[, c(61, 64, 67, 69, 73, 74, 79, 81, 
+                     84, 86, 91, 101, 102, 103, 105) ])
+
+ordinal.mod.norm.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +                           
+                                   Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside +
+                                   Birdlife_SpR + Megafauna_Spec.Rich + Mauri.Tree_SpR + nat.Simp_div + nat.H_div + 
+                                   TRI.mean + Elevation_range + tmean.yearmean + prec.yearrange + 
+                                   Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km + Dist_centroid.coast +
+                                   a.km.2007 +
+                                   (1 | country_abbr / EQL_Region), data = dat.norm, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
+
+summary(ordinal.mod.norm.full)
 
 ###############################################################################
 
