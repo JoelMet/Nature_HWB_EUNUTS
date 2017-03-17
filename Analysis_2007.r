@@ -154,7 +154,7 @@ socioeco_data1$Country_group1 <- as.factor(socioeco_data1$Country_group1)
 
 # nature.data_mod1 <- Dataset_total[, 60:93]
 
-nature.data1 <- Dataset_total[, 63:125]
+nature.data1 <- Dataset_total[, 104:156]
 
 str(nature.data1)
 
@@ -166,6 +166,17 @@ nature.data1$Bear_dummy <- as.factor(nature.data1$Bear_dummy)
 
 hist(nature.data1$Birdlife_SpR)
 hist(nature.data1$EBBA1_SpR)
+
+###########################################################################
+
+country_dummmies <- Dataset_total[, 3:33]
+
+str(country_dummmies)
+
+country_dummmies <- as.data.frame(lapply(country_dummmies, factor) )
+
+#########################################################################
+
 
 ##### check for colinearity
 
@@ -219,7 +230,7 @@ ggpairs(nature.data1[,c(1,2,4,7,8,9,13,14,19,22,24,26,30,41,42,43)])
 
 ## merge the data subsets
 
-dat.mod1 <- cbind(socioeco_data1, nature.data1)
+dat.mod1 <- cbind(country_dummmies, socioeco_data1, nature.data1)
 
 str(dat.mod1)
 
@@ -466,15 +477,21 @@ hist(dat.mod2$TRI.mean)
 summary(log(dat.mod2$Elevation_range))
 
 
-# ordinal.mod.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
-#                           Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside +
-#                            log(Birdlife_SpR) + Megafauna_Spec.Rich + Mauri.Tree_SpR + nat.Simp_div + nat.H_div + TRI.mean + log(Elevation_range) + tmean.yearmean +
-#                            log(prec.yearrange) + Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km:log(a.km.2007) + log(Dist_centroid.coast):log(a.km.2007) +
-#                            log(a.km.2007) + country_abbr +
-#                            (1 | EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
+ordinal.mod.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                           Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside +
+                            log(Birdlife_SpR) + Megafauna_Spec.Rich + Mauri.Tree_SpR + nat.Simp_div + nat.H_div + TRI.mean + log(Elevation_range) + tmean.yearmean +
+                            log(prec.yearrange) + Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km + log(Dist_centroid.coast) +
+                            log(a.km.2007) + 
+                            (1 | country_abbr / EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
 
 
-summary(ordinal.mod.full) #
+summary(ordinal.mod.full) 
+
+#                             CNTRBEL + CNTRDEN + CNTRDEU + CNTRELL + CNTRESP + CNTRFRA + CNTRIRL +  
+# CNTRITAL + CNTRLUX + CNTRNL + CNTRAT + CNTRPOR + CNTRFIN + CNTRSWE +  
+#  CNTRGB + CNTRCYP + CNTRCZ + CNTREE + CNTRHU + CNTRLV + CNTRLIT +  
+#  CNTRMT + CNTRPOL + CNTRSK + CNTRSI + CNTRBUL + CNTRROM + CNTRCRO +  
+#  CNTRTUR + CNTRNOR + CNTRMAC + 
 
 ##########################
 
@@ -484,7 +501,7 @@ dat.rescale <- dat.mod2
 
 names(dat.rescale)
 
-?scale
+summary(dat.rescale)
 
 # 60 = Elevation Range
 # 63 = TRI Mean
@@ -509,9 +526,9 @@ summary(dat.rescale[, 60])
 
 ### for more than one column 
 
-dat.rescale[, c(60, 63, 70 , 81, 82) ] <- lapply(dat.rescale[, c(60, 63, 70 , 81, 82) ], function(x) scale(x, center = FALSE, scale = max(x, na.rm = TRUE)/100))
+dat.rescale[, c(60, 63, 70, 79, 81, 82) ] <- lapply(dat.rescale[, c(60, 63, 70, 79, 81, 82) ], function(x) scale(x, center = FALSE, scale = max(x, na.rm = TRUE)/100))
 
-summary(dat.rescale[, c(60, 63, 70 , 81, 82) ])
+summary(dat.rescale[, c(60, 63, 70, 79, 81, 82) ])
 
 names(dat.rescale)
 
@@ -521,15 +538,33 @@ hist(dat.rescale$prec.yearrange)
 
 hist(dat.rescale$tmean.yearmean)
 
-summary(log(dat.rescale$Megafauna_Spec.Rich))
+summary(dat.rescale$Megafauna_Spec.Rich)
+
+names(country_dummmies)
 
 ordinal.mod.rescale.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +                           
                                  Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside +
-                                 log(Birdlife_SpR) + Megafauna_Spec.Rich + log(Mauri.Tree_SpR) + nat.Simp_div + nat.H_div + TRI.mean + Elevation_range + tmean.yearmean +
-                                 prec.yearrange + Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km + Dist_centroid.coast +
-                                 log(a.km.2007) + country_abbr +
-                                 (1 | EQL_Region), data = dat.rescale, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
+                                 log(Birdlife_SpR) + Megafauna_Spec.Rich + Mauri.Tree_SpR + nat.Simp_div + nat.H_div + 
+                                 TRI.mean + Elevation_range + tmean.yearmean + prec.yearrange + 
+                                 Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km + Dist_centroid.coast +
+                                 a.km.2007 +
+                                 (1 | country_abbr / EQL_Region), data = dat.rescale, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
 
+summary(ordinal.mod.rescale.full)
+
+# Warning message:
+#  (2) Model is nearly unidentifiable: very large eigenvalue
+# - Rescale variables? 
+# In addition: Absolute and relative convergence criteria were met 
+
+# link  threshold nobs     logLik    AIC      niter        max.grad cond.H 
+# logit flexible  16538.15 -30888.77 61883.54 10999(34349) 1.29e+03 6.3e+09
+
+# Random effects:
+#  Groups                  Name        Variance Std.Dev.
+# EQL_Region:country_abbr (Intercept) 0.1169   0.3419  
+# country_abbr            (Intercept) 0.4603   0.6785  
+# Number of groups:  EQL_Region:country_abbr 243,  country_abbr 25 
 
 
 ###############################################################################
