@@ -100,7 +100,14 @@ boxplot(Elevation_range ~ q29, data = Dataset_total, main = "Elevation Range + L
 
 boxplot(TRI.mean ~ q29, data = Dataset_total, main = "TRI Mean + LS")
 
+################################
 
+# plot the area - species richness relationship with log scale
+
+plot(log(Birdlife_SpR) ~ log(a.km.2007), data = Dataset_total, main = "Birdlife Sprich and NUTS Area Size 2007")
+
+
+abline(lm(log(Birdlife_SpR) ~ log(a.km.2007), data = Dataset_total))
 
 
 ###############################################################################
@@ -613,6 +620,15 @@ ordinal.mod.norm.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + Empl
                                    (1 | country_abbr / EQL_Region), data = dat.norm, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
 
 summary(ordinal.mod.norm.full)
+
+# link  threshold nobs     logLik    AIC      niter        max.grad cond.H 
+# logit flexible  16538.15 -30874.18 61854.37 11904(35892) 2.16e+01 1.7e+06
+
+# Random effects:
+#   Groups                  Name        Variance Std.Dev.
+# EQL_Region:country_abbr (Intercept) 0.1259   0.3548  
+# country_abbr            (Intercept) 0.1936   0.4400  
+# Number of groups:  EQL_Region:country_abbr 243,  country_abbr 25 
 
 ###############################################################################
 

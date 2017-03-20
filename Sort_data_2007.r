@@ -211,6 +211,16 @@ str(eql_2007_sub.2) # 30430 obs. of  102 variables
 
 ##############################################################################
 
+## calculate the number of respondents
+
+n_aggr <- aggregate(Life_Satisfaction ~ EQL_Region, FUN = length, data = dat.mod1)
+
+n_aggr.df <- as.data.frame(n_aggr)
+
+n_aggr.df[n_aggr.df$EQL_Region == 234, ] # 64
+
+##############################################################################
+
 ### create column with EUropean Region (Kopman & Rehdanz 2013): 
 
 # Northern Europe
