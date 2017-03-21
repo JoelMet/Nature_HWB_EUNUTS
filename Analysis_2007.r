@@ -507,7 +507,7 @@ ordinal.mod.full <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatE
                            Health_1_6 + Religion + Education_level_ISCED + Rural_or_Countryside +
                             Birdlife_SpR + Megafauna_Spec.Rich + Mauri.Tree_SpR + nat.Simp_div + nat.H_div + TRI.mean + Elevation_range + tmean.yearmean +
                             prec.yearrange + Natura_Perc_Cover + CDDA_All.2.IUCN_PercCover + Coast_length.km + Dist_centroid.coast +
-                            a.km.2007 + 
+                            log(a.km.2007) + 
                             (1 | country_abbr/EQL_Region), data = dat.mod2, na.action = na.exclude, weights = dat.mod2$WGT_TARGET)
 
 

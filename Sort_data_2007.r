@@ -202,7 +202,6 @@ str(UnemployRate_reg.2007)
 
 ### merge with data
 
-
 eql_2007_sub.2 <- merge(eql_2007_sub.2, Popdensity_reg.2007, by = "NUTS_ID", all.x = TRUE)
 
 names(eql_2007_sub.2)
@@ -217,7 +216,13 @@ n_aggr <- aggregate(Life_Satisfaction ~ EQL_Region, FUN = length, data = dat.mod
 
 n_aggr.df <- as.data.frame(n_aggr)
 
-n_aggr.df[n_aggr.df$EQL_Region == 234, ] # 64
+names(n_aggr.df) <- c("EQL_Region", "n_ind")
+
+### merge with data
+
+eql_2007_sub.2 <- merge(eql_2007_sub.2, n_aggr.df , by = "EQL_Region", all.x = TRUE)
+
+str(eql_2007_sub.2) # 30430 obs. of  102 variables
 
 ##############################################################################
 
@@ -480,6 +485,7 @@ names(coast.sub)
 
 ##############################################################################
 
+### CDDA Data
 
 IUCN <- read.table("C:/Users/jmethorst/Documents/R analyses/CDDA/CDDA_NUTS_2007.txt",
                     sep="\t", header=TRUE)
@@ -490,7 +496,18 @@ IUCN.sub <- IUCN[, c(1, 12, 13, 30, 31, 32, 33, 34, 35, 36, 37)]
 
 names(IUCN.sub)
 
+################################################################################
 
+#### Human Footprint data
+
+HFP <- read.table("C:/Users/jmethorst/Documents/R analyses/Human Footprint/Human_Footprint.txt",
+                   sep="\t", header=TRUE)
+
+names(HFP)
+
+HFP.sub <- HFP[, c(1, 9, 11, 12, 13, 14, 15, 17)]
+
+names(HFP.sub)
 
 ###############################################################################
 ######################         Merge all the Data
@@ -501,7 +518,7 @@ names(Bird.Sp.Rich_2007)
 
 Nature_data_2007 <- cbind("EQL_Region" = Nuts.EQL2007_shp@data[, 9], Bird.Sp.Rich_2007[, c(2, 3,4)], Megafauna_2007[,2:5],
                           "Tree.Sp.Rich" = Tree_Sp.Rich_2007[,2], "Mauri.Tree_SpR" = Mauri_Trees_2007.sub[,2], 
-                          Land.Hetero_2007[,2:9], 
+                          Land.Hetero_2007[,2:9], HFP.sub[, 3:8],
                           area_2007, Terrain_2007[,2:7], Climate_2007_sub[,2:15],  
                           natura.2000.sub[,2:3], coast.sub[,2:3], IUCN.sub[,2:11])
 
