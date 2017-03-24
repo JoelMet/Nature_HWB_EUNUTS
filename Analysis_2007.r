@@ -396,7 +396,6 @@ unique(dat.mod2$PopulationDensityAveragenumberofpeoplepersqua_A)
 summary(dat.mod2$logHouseholdincome_Euro)
 
 ##  run model
-?clmm.control
 
 ordinal.mod.1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age + Maritial_status +
                         Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
@@ -479,6 +478,78 @@ ordinal.mod.1.3 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF
 
 summary(ordinal.mod.1.3) # 65275.24
 
+#############################################################################
+
+#### select best model with package MuMin : dredge
+
+library("MuMIn")
+
+# prevent fitting sub-models to different datasets
+
+dat.modSelection <- na.omit(socioeco_data1)
+
+str(dat.modSelection) # 13919 obs. of  29 variables
+
+dat.modSelection$Life_Satisfaction <- as.factor(dat.modSelection$Life_Satisfaction)
+
+dat.modSelection$Social_life <- as.factor(dat.modSelection$Social_life)
+
+dat.modSelection$logHouseholdincome_Euro <- log(dat.modSelection$Householdincome_Euro)
+
+dat.modSelection$squareAge <- (dat.modSelection$Age)^2
+
+
+######
+
+options(na.action = "na.fail")
+
+fm1 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + squareAge + Maritial_status +
+                          Health_1_6 + Religion + Education_level_ISCED + Social_life + Rural_or_Countryside +
+                          (1|country / EQL_Region), data = dat.modSelection) #  na.action = na.exclude)
+
+d.fm1 <- dredge(fm1, fixed = c("logHouseholdincome_Euro", "squareAge"))
+
+saveRDS(d.fm1, "~/R analyses/Nature_HWB_EUNUTS/dredge.result_d.fm1.rds")
+
+# fixed term is "intercept"
+
+subset(d.fm1, delta < 4)
+
+# Visualize the model selection table:
+par(mar = c(3,5,6,4))
+
+plot(d.fm1, labAsExpr = TRUE)
+
+# Model average models with delta AICc < 4
+model.avg(d.fm1, subset = delta < 4)
+
+########
+
+# Model selection table 
+# (Int) EEF Hlt_1_6 lgH_Eur Mrt_stt Rlg Scl_lif       sqA df    logLik    AICc
+# 95     +   +       +  0.5587       +   +       + 0.0001234 39 -25135.67 50349.6
+# delta weight
+# 95     0      1
+# Models ranked by AICc(x) 
+# Random terms (all models): 
+#  ‘1 | country/EQL_Region’
+
+##############################################################################
+
+ordinal.mod.1.4 <- clmm(Life_Satisfaction ~ logHouseholdincome_Euro + EmplstatEF + Age^2 + Maritial_status +
+                        Health_1_6 + Religion + Social_life + 
+                        (1|country / EQL_Region), data = dat.mod2, na.action = na.exclude)
+
+summary(ordinal.mod.1.4)
+
+# link  threshold nobs  logLik    AIC      niter       max.grad cond.H 
+# logit flexible  18486 -33190.41 66458.81 7583(23810) 1.53e+02 1.3e+06
+
+# Random effects:
+#   Groups             Name        Variance Std.Dev.
+# EQL_Region:country (Intercept) 0.08041  0.2836  
+# country            (Intercept) 0.24017  0.4901  
+# Number of groups:  EQL_Region:country 250,  country 27 
 
 ##############################################################################
 
@@ -629,6 +700,8 @@ summary(ordinal.mod.norm.full)
 # EQL_Region:country_abbr (Intercept) 0.1259   0.3548  
 # country_abbr            (Intercept) 0.1936   0.4400  
 # Number of groups:  EQL_Region:country_abbr 243,  country_abbr 25 
+
+
 
 ###############################################################################
 
